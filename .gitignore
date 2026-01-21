@@ -13,6 +13,8 @@ __pycache__
 
 *.egg-info
 
+node_modules
+
 .nx/installation
 .nx/cache
 .nx/workspace-data

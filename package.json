@@ -1,0 +1,16 @@
+{
+  "name": "reallyxloco-record-collection",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@nxlv/python": "^22.0.3",
+    "nx": "^22.3.3"
+  }
+}

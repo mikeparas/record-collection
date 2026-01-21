@@ -2,5 +2,16 @@
   "installation": {
     "version": "22.3.3"
   },
+  "plugins": [
+    {
+      "plugin": "@nxlv/python",
+      "options": {
+        "packageManager": "uv"
+      }
+    }
+  ],
+  "workspaceLayout": {
+    "appsDir": "services"
+  },
   "$schema": "./node_modules/nx/schemas/nx-schema.json"
 }

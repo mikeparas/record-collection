@@ -1,0 +1,74 @@
+{
+    "name": "api",
+    "root": "services/api",
+    "projectType": "application",
+    "targets": {
+        "test": {
+            "cache": true,
+            "command": "uv run pytest -m \"not e2e\""
+        },
+        "test_e2e": {
+            "cache": true,
+            "command": "uv run pytest -m e2e"
+        },
+        "full_test_e2e": {
+            "cache": true,
+            "executor": "nx:run-commands",
+            "options": {
+                "parallel": false,
+                "commands": [
+                    "npx nx run api:db_test_setup",
+                    "npx nx run api:test_e2e",
+                    "npx nx run api:db_test_teardown"
+                ]
+            }
+        },
+        "db_init": {
+            "command": "uv run python -m scripts.db_init",
+            "options": {
+                "cwd": "services/api"
+            }
+        },
+        "db_test_setup": {
+            "command": "uv run python -m scripts.db_test_init_cli setup",
+            "options": {
+                "cwd": "services/api"
+            }
+        },
+        "db_test_teardown": {
+            "command": "uv run python -m scripts.db_test_init_cli teardown",
+            "options": {
+                "cwd": "services/api"
+            }
+        },
+        "format": {
+            "executor": "nx:run-commands",
+            "options": {
+                "parallel": false,
+                "commands": [
+                    "uv run ruff check --select I --fix",
+                    "uv run ruff format"
+                ]
+            }
+        },
+        "lint": {
+            "executor": "nx:run-commands",
+            "options": {
+                "commands": [
+                    "uv run ruff check",
+                    "uv run mypy ."
+                ]
+            }
+        },
+        "precommit": {
+            "executor": "nx:run-commands",
+            "options": {
+                "parallel": false,
+                "commands": [
+                    "npx nx run api:format",
+                    "npx nx run api:lint"
+                ]
+            }
+        }
+    }
+}
