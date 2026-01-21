@@ -1,0 +1,93 @@
+[project]
+name = "reallyxloco-record-collection"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic>=2.12.5",
+    "api"
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "poethepoet>=0.40.0",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.11",
+    "asyncpg-stubs>=0.31.1",
+    "pytest-asyncio>=1.3.0",
+]
+
+[tool.uv.workspace]
+members = ["services/api"]
+
+[tool.uv.sources]
+api = {workspace = true}
+
+[tool.mypy]
+plugins = ["pydantic.mypy"]
+
+[tool.ruff]
+src = ["services/api"]
+
+[tool.ruff.lint]
+exclude = ["services/api/alembic/*"]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    "C90"
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "e2e: mark a test as end to end"
+]
+addopts = "-v --cov=src --cov-report term-missing --cov-report html"
+
+[tool.poe.tasks.db_test_setup]
+cmd = "python -m scripts.db_test_init_cli setup"
+cwd = "services/api"
+
+[tool.poe.tasks.db_test_teardown]
+cmd = "python -m scripts.db_test_init_cli teardown"
+cwd = "services/api"
+
+[tool.poe.tasks.test]
+cmd = "pytest -m \"not e2e\""
+
+[tool.poe.tasks.test_e2e]
+sequence = [
+    { ref = "db_test_setup" },
+    { cmd = "pytest -m e2e" },
+    { ref = "db_test_teardown" }
+]
+
+[tool.poe.tasks.format]
+sequence = [
+    { cmd = "ruff check --select I --fix" },
+    { cmd = "ruff format" }
+]
+
+[tool.poe.tasks.lint]
+sequence = [
+    { cmd = "ruff check" },
+    { cmd = "mypy ." }
+]
+
+[tool.poe.tasks.precommit]
+sequence = [
+    { ref = "format" },
+    { ref = "lint" }
+]

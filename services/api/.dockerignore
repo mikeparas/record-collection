@@ -1,0 +1,19 @@
+# Exclude Python virtual environment
+.venv
+
+# Exclude all configuration files that hold secrets
+.env*
+
+# Exclude local build artifacts
+__pycache__
+*.pyc
+
+# Exclude git
+.git
+
+# Exclude other cache directories
+.*_cache
+
+# Exclude coverage stuff
+htmlcov
+.coverage
