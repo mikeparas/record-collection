@@ -1,14 +1,24 @@
-FROM python:3.13-slim
+FROM ghcr.io/astral-sh/uv:python3.14-alpine AS builder
 WORKDIR /app
+COPY pyproject.toml uv.lock .python-version ./
 
-# install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# main app
+FROM builder AS api
+COPY services/api ./services/api
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv -v sync --frozen --no-dev
+CMD uv run --directory services/api fastapi run --workers 4 src/main.py
 
-# copy code
-COPY . .
+# db setup
+FROM builder as db_setup
+COPY services/api ./services/api
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv -v sync --frozen --no-dev
+CMD uv run --directory services/api python -m scripts.db_init
 
-# run fastapi
-EXPOSE 8000
-CMD fastapi run --workers 4 src/main.py
-
+# e2e
+FROM builder as e2e
+COPY services/api ./services/api
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --frozen
+CMD uv run poe test_e2e

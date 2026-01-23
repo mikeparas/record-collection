@@ -1,0 +1,73 @@
+services:
+  db:
+    image: postgres:17
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${DB_SUPERUSER}
+      - POSTGRES_PASSWORD=${DB_SUPERUSER_PASS}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_SUPERUSER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - ./rabbitmq-secrets/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
+    environment:
+      - RABBITMQ_DEFAULT_USER=${MQ_USER}
+      - RABBITMQ_DEFAULT_PASS=${MQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+
+  db_setup:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      target: db_setup
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - services/api/.env 
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      target: api
+    depends_on:
+      db_setup:
+        condition: service_completed_successfully
+    env_file:
+      - services/api/.env 
+    ports:
+      - "8000:8000"
+
+  api_e2e:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      target: e2e
+    depends_on:
+      api:
+        condition: service_started
+    env_file:
+      - services/api/.env 
+
+volumes:
+  postgres_data:
+  rabbitmq_data:

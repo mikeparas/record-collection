@@ -13,6 +13,7 @@ class RabbitMQConnector:
             print("returning cached connection...")
             return cls.connection
 
+        print(f"new rabbitmq connection {host=} {username=} {port=}")
         cls.connection = await aio_pika.connect_robust(
             host=host, login=username, password=password, port=port, virtualhost="/"
         )
