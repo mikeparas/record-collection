@@ -18,7 +18,7 @@ services:
     image: rabbitmq:4-management
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
-      - ./rabbitmq-secrets/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
+      - ./secrets/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
     environment:
       - RABBITMQ_DEFAULT_USER=${MQ_USER}
       - RABBITMQ_DEFAULT_PASS=${MQ_PASS}

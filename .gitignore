@@ -1,5 +1,7 @@
 .DS_Store
 
+.venv
+
 .env
 .env.*
 !.env.sample
@@ -19,4 +21,4 @@ node_modules
 .nx/cache
 .nx/workspace-data
 
-rabbitmq-secrets
+secrets
