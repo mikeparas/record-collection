@@ -70,3 +70,21 @@ sequence = [
     { cmd = "pytest -m e2e" },
     { ref = "db_test_teardown" }
 ]
+
+[tool.poe.tasks.format]
+sequence = [
+    { cmd = "ruff check --select I --fix" },
+    { cmd = "ruff format" }
+]
+
+[tool.poe.tasks.lint]
+sequence = [
+    { cmd = "ruff check" },
+    { cmd = "mypy ." }
+]
+
+[tool.poe.tasks.precommit]
+sequence = [
+    { ref = "format" },
+    { ref = "lint" }
+]

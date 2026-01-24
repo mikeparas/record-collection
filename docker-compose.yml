@@ -31,6 +31,21 @@ services:
       timeout: 30s
       retries: 3
 
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+      target: api
+    depends_on:
+      db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    env_file:
+      - .env 
+    ports:
+      - "8000:8000"
+
   db_setup:
     build:
       context: .
@@ -39,23 +54,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
     env_file:
-      - services/api/.env 
-
-  api:
-    build:
-      context: .
-      dockerfile: services/api/Dockerfile
-      target: api
-    depends_on:
-      db_setup:
-        condition: service_completed_successfully
-    env_file:
-      - services/api/.env 
-    ports:
-      - "8000:8000"
+      - .env 
+    profiles:
+      - tools
 
   api_e2e:
     build:
@@ -66,7 +68,9 @@ services:
       api:
         condition: service_started
     env_file:
-      - services/api/.env 
+      - .env 
+    profiles:
+      - tools
 
 volumes:
   postgres_data:
