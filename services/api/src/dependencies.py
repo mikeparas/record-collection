@@ -12,6 +12,7 @@ from src.core.database import AsyncSessionLocal, SessionLocal
 from src.core.publisher import RabbitMQConnector
 from src.modules.artists.publisher import ArtistPublisher
 from src.modules.artists.service import ArtistAsyncService, ArtistService
+from src.modules.health.service import HealthService
 from src.modules.labels.service import LabelService
 from src.modules.records.service import RecordService
 
@@ -64,3 +65,11 @@ def get_label_service(db: Annotated[Session, Depends(get_db)]):
 
 def get_record_service(db: Annotated[Session, Depends(get_db)]):
     return RecordService(db)
+
+
+def get_health_service(
+    db: Annotated[AsyncSession, Depends(get_async_db)],
+    channel: Annotated[AbstractChannel, Depends(get_publisher_channel)],
+) -> HealthService:
+    """Get the health service."""
+    return HealthService(db, channel)

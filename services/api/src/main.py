@@ -15,6 +15,7 @@ from src.core.exceptions import (
 from src.core.publisher import RabbitMQConnector, setup_channel
 from src.modules.artists.router import router as artist_router
 from src.modules.artists.router import router_v2 as async_artist_router
+from src.modules.health.router import router as health_router
 from src.modules.labels.router import router as label_router
 from src.modules.records.router import router as record_router
 
@@ -60,8 +61,9 @@ app = FastAPI(
         NotFoundException: not_found_exception_handler,
         RequestValidationError: request_validation_error_handler,
         ConflictException: conflict_exception_handler,
-    },
+    },  # type: ignore
 )
+app.include_router(health_router)
 app.include_router(artist_router)
 app.include_router(async_artist_router)
 app.include_router(label_router)

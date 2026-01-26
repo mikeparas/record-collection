@@ -41,6 +41,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - ./services/api:/app/services/api
     env_file:
       - .env 
     ports:
@@ -54,6 +56,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - ./services/api:/app/services/api
     env_file:
       - .env 
     profiles:
@@ -67,6 +71,8 @@ services:
     depends_on:
       api:
         condition: service_started
+    volumes:
+      - ./services/api:/app/services/api
     env_file:
       - .env 
     profiles:
