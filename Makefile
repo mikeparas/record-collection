@@ -1,5 +1,6 @@
 sync:
 	uv sync --all-groups --all-extras
+	pnpm i
 
 .PHONY: secrets
 secrets:

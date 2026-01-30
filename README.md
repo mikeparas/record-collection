@@ -17,9 +17,11 @@ make test_e2e  # run e2e tests
 ```
 
 ## Prerequisites
-
-* `uv` - https://docs.astral.sh/uv/getting-started/installation/
-* `podman` - https://podman.io/docs/installation
+| Tool | Installation |
+| --- | --- |
+| `uv` | https://docs.astral.sh/uv/getting-started/installation/ |
+| `pnpm` | https://pnpm.io/installation |
+| `podman` | https://podman.io/docs/installation |
 
 Podman is used as a drop-in replacement for Docker. If using Docker (or other container tool), simply replace `podman` in the `Makefile` targets.
 
