@@ -28,3 +28,6 @@ precommit:
 
 clean:
 	podman compose down -v
+
+enrich-migrate-generate:
+	cd services/enrich && pnpm db:migrate-generate src/migrations/$(MIGRATION)
