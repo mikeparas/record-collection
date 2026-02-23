@@ -1,11 +1,14 @@
 import os
 from logging.config import fileConfig
+from typing import Literal
 from urllib.parse import quote_plus
 
 from alembic import context
 from dotenv import load_dotenv
-from sqlalchemy import URL, engine_from_config, pool
+from sqlalchemy import engine_from_config, pool
 from src.core.database import Base
+
+from sqlalchemy.sql.schema import SchemaItem
 
 # apparently still need these imports
 from src.modules.artists.models import ArtistModel  # noqa: F401
@@ -48,6 +51,28 @@ target_metadata = [Base.metadata]
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+# ignore non-sqlalchemy managed tables
+exclude_tables = ["migrations_typeorm", "artist_extra"]
+
+
+def include_object(
+    object: SchemaItem,
+    name: str | None,
+    type_: Literal[
+        "schema",
+        "table",
+        "column",
+        "index",
+        "unique_constraint",
+        "foreign_key_constraint",
+    ],
+    reflected: bool,
+    compare_to: SchemaItem | None,
+):
+    if type_ == "table" and name in exclude_tables:
+        return False
+    return True
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -67,6 +92,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -88,7 +114,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

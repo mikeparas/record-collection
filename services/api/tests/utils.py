@@ -1,6 +1,8 @@
 import base64
 import itertools
 import json
+import os
+import time
 import uuid
 from typing import Any, cast
 from urllib.parse import ParseResult, parse_qs, urlparse
@@ -162,3 +164,13 @@ def assert_record_list_item(expected_item: RecordModel, received_item: dict[str,
         ],
     }
     assert received_item == expected_json
+
+
+def rmq_test_exchange_name():
+    base_name = os.getenv("MQ_EXCHANGE", "record_collection")
+    return f"test-{time.time()}-{base_name}"
+
+
+def rmq_test_queue_name():
+    base_name = os.getenv("MQ_QUEUE_EXTERNAL_DATA", "external_data_v1")
+    return f"test-{time.time()}-{base_name}"

@@ -19,7 +19,7 @@ from src.core.exceptions import (
     request_validation_error_handler,
 )
 from src.dependencies import get_artist_async_service, get_artist_service
-from src.modules.artists.models import ArtistModel
+from src.modules.artists.models import ArtistModel, Integrations
 from src.modules.artists.router import router, router_v2
 from src.modules.artists.service import (
     DEFAULT_LIST_LIMIT,
@@ -157,8 +157,11 @@ def test_post_artist(mock_artist_service: MagicMock):
 async def test_async_post_artist(
     mock_async_artist_service: AsyncMock, async_client: AsyncClient
 ):
+    discogs_id = 12345
     mock_artist = ArtistModel(
-        name="New Artist", sort_name="newartist", discogs_id="123456"
+        name="New Artist",
+        sort_name="newartist",
+        integrations=Integrations(discogs=discogs_id),
     )
     mock_artist.id = uuid.uuid4()
 
@@ -172,7 +175,7 @@ async def test_async_post_artist(
     artist_data: dict[str, Any] = {
         "name": mock_artist.name,
         "sortName": mock_artist.sort_name,
-        "discogs_id": mock_artist.discogs_id,
+        "integrations": {"discogs": discogs_id},
     }
     response = await async_client.post(BASE_PATH_ASYNC, json=artist_data)
     assert response.status_code == 201
@@ -180,6 +183,11 @@ async def test_async_post_artist(
     assert artist["id"] == str(mock_artist.id)
     assert artist["name"] == mock_artist.name
     assert artist["sortName"] == mock_artist.sort_name
+    assert (
+        artist["integrations"] == Integrations.model_dump(mock_artist.integrations)
+        if mock_artist.integrations is not None
+        else None
+    )
 
     headers = response.headers
     assert re.search(f"{BASE_PATH_ASYNC}/New Artist$", headers["Location"]) is not None
@@ -187,7 +195,7 @@ async def test_async_post_artist(
     mock_async_artist_service.create.assert_called_once_with(
         name=mock_artist.name,
         sort_name=mock_artist.sort_name,
-        discogs_id=mock_artist.discogs_id,
+        integrations=Integrations(discogs=discogs_id),
     )
 
 
@@ -505,7 +513,7 @@ async def test_async_post_artist_duplicate(
     )
 
     mock_async_artist_service.create.assert_called_once_with(
-        name=artist_data["name"], sort_name=artist_data["sortName"], discogs_id=None
+        name=artist_data["name"], sort_name=artist_data["sortName"], integrations=None
     )
 
 

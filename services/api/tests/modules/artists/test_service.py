@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from src.core.exceptions import ConflictException
-from src.modules.artists.models import ArtistModel
+from src.modules.artists.models import ArtistModel, Integrations
 from src.modules.artists.publisher import ArtistPublisher
 from src.modules.artists.schemas import ArtistMessage
 from src.modules.artists.service import (
@@ -186,11 +186,9 @@ def test_create():
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize(
-    "discogs_id, should_publish", [(None, False), ("1234abcd", True)]
-)
-async def test_async_create_no_discogs(
-    discogs_id: str | None,
+@pytest.mark.parametrize("discogs_id, should_publish", [(None, False), (123456, True)])
+async def test_async_create_integrations(
+    discogs_id: int | None,
     should_publish: bool,
     mock_publisher: ArtistPublisher | AsyncMock,
 ):
@@ -204,14 +202,16 @@ async def test_async_create_no_discogs(
     name = "New Artist"
     sort_name = "newartist"
 
+    integrations = Integrations(discogs=discogs_id) if discogs_id is not None else None
+
     artist_service = ArtistAsyncService(mock_session, mock_publisher)
     artist = await artist_service.create(
-        name=name, sort_name=sort_name, discogs_id=discogs_id
+        name=name, sort_name=sort_name, integrations=integrations
     )
     assert artist.id == mock_id
     assert artist.name == name
     assert artist.sort_name == sort_name
-    assert artist.discogs_id == discogs_id
+    assert artist.integrations == integrations
 
     add_arg = cast(Mock, mock_session.add).call_args[0][0]
     assert isinstance(add_arg, ArtistModel)
@@ -223,14 +223,14 @@ async def test_async_create_no_discogs(
 
     mock_publish = cast(AsyncMock, mock_publisher.publish_message)
     if should_publish:
-        artist_message = ArtistMessage.model_validate(artist)
+        artist_message = ArtistMessage(artist_id=artist.id)
         mock_publish.assert_called_once()
         args, _ = mock_publish.call_args
         expected_message: ArtistMessage = args[0]
-        assert expected_message.id_ == artist_message.id_
-        assert expected_message.name == artist_message.name
-        assert expected_message.sort_name == artist_message.sort_name
-        assert expected_message.discogs_id == artist_message.discogs_id
+        assert expected_message.artist_id == artist_message.artist_id
+        # assert expected_message.name == artist_message.name
+        # assert expected_message.sort_name == artist_message.sort_name
+        # assert expected_message.discogs_id == artist_message.discogs_id
     else:
         mock_publish.assert_not_called()
 

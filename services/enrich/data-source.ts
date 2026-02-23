@@ -3,7 +3,7 @@ import dotenv from "dotenv"
 
 import { DataSource, DataSourceOptions } from "typeorm";
 
-dotenv.config({path: "../../.env"});
+dotenv.config();
 
 export default new DataSource({
     type: "postgres",

@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import UniqueConstraint
 
 from src.core.database import Base
+from src.shared.types import Integrations, IntegrationsType
 
 if TYPE_CHECKING:
     from src.modules.records.models import RecordModel
@@ -28,7 +29,9 @@ class ArtistModel(Base):
     )
     name: Mapped[str] = mapped_column(String)
     sort_name: Mapped[str] = mapped_column(String)
-    discogs_id: Mapped[str | None] = mapped_column(String, default=None)
+    integrations: Mapped[Integrations | None] = mapped_column(
+        IntegrationsType(Integrations), default=None
+    )
 
     records: Mapped[list[RecordModel]] = relationship(
         "RecordModel",

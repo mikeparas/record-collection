@@ -56,21 +56,6 @@ markers = [
 ]
 addopts = "-v --cov=src --cov-report term-missing --cov-report html"
 
-[tool.poe.tasks.db_test_setup]
-cmd = "python -m scripts.db_test_init_cli setup"
-cwd = "services/api"
-
-[tool.poe.tasks.db_test_teardown]
-cmd = "python -m scripts.db_test_init_cli teardown"
-cwd = "services/api"
-
-[tool.poe.tasks.test_e2e]
-sequence = [
-    { ref = "db_test_setup" },
-    { cmd = "pytest -m e2e" },
-    { ref = "db_test_teardown" }
-]
-
 [tool.poe.tasks.format]
 sequence = [
     { cmd = "ruff check --select I --fix" },

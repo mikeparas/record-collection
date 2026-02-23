@@ -1,3 +1,4 @@
+import json
 import uuid
 from typing import cast
 from unittest.mock import AsyncMock, Mock
@@ -9,6 +10,7 @@ from aio_pika.exceptions import AMQPError
 from src.modules.artists.models import ArtistModel
 from src.modules.artists.publisher import ROUTING_KEY, ArtistPublisher
 from src.modules.artists.schemas import ArtistMessage
+from src.shared.types import Integrations
 
 
 @pytest.mark.asyncio
@@ -24,10 +26,12 @@ async def test_publish_message():
 
     publisher = ArtistPublisher(channel=mock_channel, exchange_name=exchange)
     artist = ArtistModel(
-        name="Test Artist", sort_name="testartist", discogs_id="1234abcd"
+        name="Test Artist",
+        sort_name="testartist",
+        integrations=Integrations(discogs=123456),
     )
     artist.id = uuid.uuid4()
-    artist_message = ArtistMessage.model_validate(artist)
+    artist_message = ArtistMessage(artist_id=artist.id)
     result = await publisher.publish_message(artist_message)
 
     assert result is True
@@ -40,9 +44,7 @@ async def test_publish_message():
     mock_publish.assert_awaited_once()
     args, kwargs = mock_publish.call_args
     expected_message = cast(Message, args[0])
-    assert (
-        expected_message.body == artist_message.model_dump_json(by_alias=True).encode()
-    )
+    assert json.loads(expected_message.body) == {"artistId": str(artist.id)}
     assert expected_message.content_type == "application/json"
     assert expected_message.delivery_mode == DeliveryMode.PERSISTENT
     assert kwargs["routing_key"] == ROUTING_KEY
@@ -59,10 +61,12 @@ async def test_publish_message_queue_error():
 
     publisher = ArtistPublisher(channel=mock_channel, exchange_name=exchange)
     artist = ArtistModel(
-        name="Test Artist", sort_name="testartist", discogs_id="1234abcd"
+        name="Test Artist",
+        sort_name="testartist",
+        integrations=Integrations(discogs=123456),
     )
     artist.id = uuid.uuid4()
-    artist_message = ArtistMessage.model_validate(artist)
+    artist_message = ArtistMessage(artist_id=artist.id)
     result = await publisher.publish_message(artist_message)
 
     assert result is False

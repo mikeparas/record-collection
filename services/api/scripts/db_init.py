@@ -1,16 +1,39 @@
 import os
+from collections.abc import Callable
+from contextlib import contextmanager
 from dataclasses import dataclass
-from pathlib import Path
-from urllib.parse import quote_plus
+from enum import StrEnum
+from typing import TypedDict
 
 import psycopg
-from alembic.config import Config
 from dotenv import load_dotenv
-from psycopg import errors, sql
-
-from alembic import command
+from psycopg import Cursor, Error, errors, sql
 
 load_dotenv()
+
+
+class TestMarkerConfig(TypedDict):
+    table: str
+    col_id: str
+    col_label: str
+    col_created: str
+    val_id: int
+    val_label: str
+
+
+TEST_MARKER_CONFIG: TestMarkerConfig = {
+    "table": "test_marker",
+    "col_id": "id",
+    "col_label": "label",
+    "col_created": "created_at",
+    "val_id": 1,
+    "val_label": "TEST_DB",
+}
+
+
+class Mode(StrEnum):
+    NONE = "none"
+    TEST = "test"
 
 
 @dataclass(kw_only=True)
@@ -25,9 +48,7 @@ class Env:
     admin_pass: str
     app_user: str
     app_pass: str
-    test_database: str | None = None
-    test_user: str | None = None
-    test_pass: str | None = None
+    mode: Mode = Mode.NONE
 
 
 def get_environment(key: str, default: str | None = None) -> str:
@@ -50,181 +71,286 @@ def load_environment():
         admin_pass=get_environment("DB_ADMIN_PASS"),
         app_user=get_environment("DB_APP_USER"),
         app_pass=get_environment("DB_APP_PASS"),
+        mode=Mode(get_environment("MODE", Mode.NONE)),
     )
-
-    test_database = get_environment("DB_TEST_DATABASE", "")
-    if len(test_database) > 0:
-        config.test_database = test_database
-        config.test_user = get_environment("DB_TEST_USER")
-        config.test_pass = get_environment("DB_TEST_PASS")
 
     return config
 
 
-def initialize():
+def initialize_db():
     config = load_environment()
 
-    init_db(config)
-    init_users(config)
-    alter_user_search_path(config)
+    run_as_superuser(
+        config,
+        [
+            create_admin_user,
+            create_app_user,
+            create_database,
+            grant_connect_admin_user,
+            grant_connect_app_user,
+        ],
+        autocommit=True,
+    )  # CREATE DATABASE can't be in a txn
+    run_as_admin(
+        config,
+        [
+            create_schema,
+            grant_schema_admin_user,
+            grant_schema_app_user,
+            grant_on_tables_app_user,
+            grant_on_sequences_app_user,
+            alter_default_privileges_tables_app_user,
+            alter_default_privileges_sequences_app_user,
+            process_initialize_test_mode,
+        ],
+    )
+    run_as_superuser(config, [alter_search_path_app_user])
 
-    # build connection url for alembic to use
-    os.environ["DB_MIGRATE"] = config.database
-    run_migrations()
+
+def teardown_db():
+    config = load_environment()
+
+    if teardown_check_test_mode(config):
+        print("performing teardown tasks")
+        run_as_superuser(config, [drop_db], autocommit=True)
+    else:
+        print("skipping teardown tasks")
 
 
-def run_migrations():
-    scripts_dir = Path(__file__).parent.resolve()
-
-    proj_root = scripts_dir.parent
-    alembic_ini_path = proj_root / "alembic.ini"
-
-    alembic_config = Config(alembic_ini_path)
-
-    command.upgrade(alembic_config, "head")
-
-
-def build_database_url(config: Env):
-    safe_password = quote_plus(config.admin_pass)
-    return f"postgresql+psycopg://{config.admin_user}:{safe_password}@{config.host}:{config.port}/{config.database}"
-
-
-def init_db(config: Env):
-    # run as superuser
+@contextmanager
+def connect_db(
+    *,
+    host: str,
+    port: str,
+    dbname: str,
+    user: str,
+    password: str,
+    autocommit: bool = False,
+):
     with (
         psycopg.connect(
-            dbname="postgres",
-            host=config.host,
-            port=config.port,
-            user=config.superuser,
-            password=config.superuser_pass,
-            autocommit=True,  # CREATE DATABASE can't be in a transaction
+            dbname=dbname,
+            host=host,
+            port=port,
+            user=user,
+            password=password,
+            autocommit=autocommit,
         ) as conn,
-        conn.cursor() as cur,
+        conn.cursor() as cursor,
     ):
-        # create users
-        try:
-            cur.execute(create_user_cmd(config.admin_user, config.admin_pass))
-            print(f"Admin user {config.admin_user} created.")
-        except errors.DuplicateObject:
-            print(f"User {config.admin_user} already exists. Skipping creation.")
+        yield cursor
+        if not autocommit:
+            conn.commit()
 
-        try:
-            cur.execute(create_user_cmd(config.app_user, config.app_pass))
-            print(f"App user {config.app_user} created.")
-        except errors.DuplicateObject:
-            print(f"User {config.app_user} already exists. Skipping creation.")
 
-        if (
-            config.test_database is not None
-            and config.test_user is not None
-            and config.test_pass is not None
-        ):
-            try:
-                cur.execute(create_user_cmd(config.test_user, config.test_pass))
-                print(f"Test user {config.test_user} created.")
-            except errors.DuplicateObject:
-                print(f"User {config.test_user} already exists. Skipping creation.")
+def run_as_superuser(
+    config: Env, tasks: list[Callable[[Cursor, Env], None]], *, autocommit: bool = False
+):
+    with connect_db(
+        dbname="postgres",
+        host=config.host,
+        port=config.port,
+        user=config.superuser,
+        password=config.superuser_pass,
+        autocommit=autocommit,
+    ) as cursor:
+        for task in tasks:
+            print(f"Running task {task.__name__}")
+            task(cursor, config)
 
-        # create database and set owner to admin user
-        try:
-            cur.execute(
-                sql.SQL("CREATE DATABASE {} OWNER {}").format(
-                    sql.Identifier(config.database), sql.Identifier(config.admin_user)
-                )
+
+def process_initialize_test_mode(cur: Cursor, config: Env):
+    print(f"Configured MODE={config.mode}")
+    if config.mode == Mode.TEST:
+        create_test_marker(cur)
+        insert_test_marker(cur)
+    else:
+        print(f"No tasks for mode {config.mode}")
+
+
+def create_test_marker(cur: Cursor):
+    cur.execute(
+        sql.SQL("""
+        CREATE TABLE IF NOT EXISTS {} (
+            {} int PRIMARY KEY,
+            {} text NOT NULL,
+            {} timestamp with time zone DEFAULT now() 
+        )
+    """).format(
+            sql.Identifier(TEST_MARKER_CONFIG["table"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_id"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_label"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_created"]),
+        )
+    )
+    print(f"Ensured table {TEST_MARKER_CONFIG['table']} exists")
+
+
+def insert_test_marker(cur: Cursor):
+    cur.execute(
+        sql.SQL("""
+            INSERT INTO {} ({}, {}) VALUES (%s, %s)
+            ON CONFLICT ({}) DO NOTHING
+        """).format(
+            sql.Identifier(TEST_MARKER_CONFIG["table"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_id"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_label"]),
+            sql.Identifier(TEST_MARKER_CONFIG["col_id"]),
+        ),
+        (TEST_MARKER_CONFIG["val_id"], TEST_MARKER_CONFIG["val_label"]),
+    )
+    print("Inserted test marker")
+
+
+def create_admin_user(cursor: Cursor, config: Env):
+    create_user(cursor, config.admin_user, config.admin_pass, "Admin")
+
+
+def create_app_user(cursor: Cursor, config: Env):
+    create_user(cursor, config.app_user, config.app_pass, "App")
+
+
+def create_user(cursor: Cursor, username: str, password: str, user_type: str):
+    try:
+        cursor.execute(create_user_cmd(username, password))
+        print(f"{user_type} user {username} created.")
+    except errors.DuplicateObject:
+        print(f"{user_type} user {username} already exists. Skipping creation.")
+
+
+def create_database(cursor: Cursor, config: Env):
+    try:
+        cursor.execute(
+            sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                sql.Identifier(config.database), sql.Identifier(config.admin_user)
             )
-            print(f"Database {config.database} created.")
-        except errors.DuplicateDatabase:
-            print(f"Database {config.database} already exists. Skipping creation.")
-
-        # grant connect to admin user and app user
-        cur.execute(grant_connect_db_cmd(config.database, config.admin_user))
-        cur.execute(grant_connect_db_cmd(config.database, config.app_user))
+        )
+        print(f"Database {config.database} created.")
+    except errors.DuplicateDatabase:
+        print(f"Database {config.database} already exists. Skipping creation.")
 
 
-def app_user_cmds(*, schema: str, username: str, owner: str) -> list[sql.Composed]:
-    return [
-        # grant usage on schema
-        grant_schema_cmd(schema, username),
-        # grant select, insert, update, delete on tables
-        sql.SQL(
-            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {} TO {}"
-        ).format(sql.Identifier(schema), sql.Identifier(username)),
-        # grant usage, select on sequences
-        sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {} TO {}").format(
-            sql.Identifier(schema), sql.Identifier(username)
-        ),
-        # alter table default privileges
-        sql.SQL(
-            "ALTER DEFAULT PRIVILEGES FOR USER {} IN SCHEMA {} "
-            "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
-        ).format(
-            sql.Identifier(owner),
-            sql.Identifier(schema),
-            sql.Identifier(username),
-        ),
-        # alter sequence default privileges
-        sql.SQL(
-            "ALTER DEFAULT PRIVILEGES FOR USER {} IN SCHEMA {} "
-            "GRANT USAGE, SELECT ON SEQUENCES TO {}"
-        ).format(
-            sql.Identifier(owner),
-            sql.Identifier(schema),
-            sql.Identifier(username),
-        ),
-    ]
+def grant_connect_admin_user(cursor: Cursor, config: Env):
+    cursor.execute(grant_connect_db_cmd(config.database, config.admin_user))
 
 
-def init_users(config: Env):
+def grant_connect_app_user(cursor: Cursor, config: Env):
+    cursor.execute(grant_connect_db_cmd(config.database, config.app_user))
+
+
+def teardown_check_test_mode(config: Env):
+    print(f"Configured MODE={config.mode}")
+    if config.mode == Mode.TEST:
+        has_test_marker = check_test_marker(config)
+        print(f"test marker present? {'Y' if has_test_marker else 'N'}")
+        return has_test_marker
+
+    return False
+
+
+def drop_db(cursor: Cursor, config: Env):
+    cursor.execute(drop_db_cmd(config.database))
+    print(f"Test database {config.database} dropped.")
+
+
+def check_test_marker(config: Env):
+    with connect_db(
+        dbname=config.database,
+        host=config.host,
+        port=config.port,
+        user=config.superuser,
+        password=config.superuser_pass,
+    ) as cursor:
+        try:
+            cursor.execute(
+                sql.SQL("""
+                SELECT * FROM {} WHERE {} = %s
+            """).format(
+                    sql.Identifier(TEST_MARKER_CONFIG["table"]),
+                    sql.Identifier(TEST_MARKER_CONFIG["col_id"]),
+                ),
+                (TEST_MARKER_CONFIG["val_id"],),
+            )
+            return cursor.fetchone() is not None
+        except Error as exc:
+            print(exc)
+            return False
+
+
+def drop_db_cmd(database: str):
+    return sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(database))
+
+
+def run_as_admin(config: Env, tasks: list[Callable[[Cursor, Env], None]]):
     # run as admin user, connecting to target database
     with (
-        psycopg.connect(
+        connect_db(
             dbname=config.database,
             host=config.host,
             port=config.port,
             user=config.admin_user,
             password=config.admin_pass,
-        ) as conn,
-        conn.cursor() as cur,
+        ) as cursor,
     ):
-        # create schema
-        cur.execute(
-            sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(
-                sql.Identifier(config.schema)
-            )
+        for task in tasks:
+            print(f"Running task {task.__name__}")
+            task(cursor, config)
+
+
+def create_schema(cur: Cursor, config: Env):
+    cur.execute(
+        sql.SQL("CREATE SCHEMA IF NOT EXISTS {}").format(sql.Identifier(config.schema))
+    )
+
+
+def grant_schema_admin_user(cur: Cursor, config: Env):
+    cur.execute(grant_schema_cmd(config.schema, config.admin_user))
+
+
+def grant_schema_app_user(cur: Cursor, config: Env):
+    cur.execute(grant_schema_cmd(config.schema, config.app_user))
+
+
+def grant_on_tables_app_user(cur: Cursor, config: Env):
+    cur.execute(
+        sql.SQL(
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA {} TO {}"
+        ).format(sql.Identifier(config.schema), sql.Identifier(config.app_user))
+    )
+
+
+def grant_on_sequences_app_user(cur: Cursor, config: Env):
+    cur.execute(
+        sql.SQL("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA {} TO {}").format(
+            sql.Identifier(config.schema), sql.Identifier(config.app_user)
         )
+    )
 
-        # grant usage and create on schema to admin user
-        cur.execute(grant_schema_cmd(config.schema, config.admin_user))
 
-        user_cmds = app_user_cmds(
-            schema=config.schema, username=config.app_user, owner=config.admin_user
+def alter_default_privileges_tables_app_user(cur: Cursor, config: Env):
+    cur.execute(
+        sql.SQL(
+            "ALTER DEFAULT PRIVILEGES FOR USER {} IN SCHEMA {} "
+            "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}"
+        ).format(
+            sql.Identifier(config.admin_user),  # owner
+            sql.Identifier(config.schema),
+            sql.Identifier(config.app_user),
         )
-        for cmd in user_cmds:
-            cur.execute(cmd)
-
-        conn.commit()
+    )
 
 
-def alter_user_search_path(config: Env):
-    # run as superuser
-    with (
-        psycopg.connect(
-            dbname="postgres",
-            host=config.host,
-            port=config.port,
-            user=config.superuser,
-            password=config.superuser_pass,
-        ) as conn,
-        conn.cursor() as cur,
-    ):
-        cur.execute(alter_search_path_cmd(config.schema, config.app_user))
-
-        if config.test_database is not None and config.test_user is not None:
-            cur.execute(alter_search_path_cmd(config.schema, config.test_user))
-            print(f"Test user {config.test_user} search_path set.")
-
-        conn.commit()
+def alter_default_privileges_sequences_app_user(cursor: Cursor, config: Env):
+    cursor.execute(
+        sql.SQL(
+            "ALTER DEFAULT PRIVILEGES FOR USER {} IN SCHEMA {} "
+            "GRANT USAGE, SELECT ON SEQUENCES TO {}"
+        ).format(
+            sql.Identifier(config.admin_user),  # owner
+            sql.Identifier(config.schema),
+            sql.Identifier(config.app_user),
+        )
+    )
 
 
 def create_user_cmd(username: str, password: str):
@@ -240,7 +366,7 @@ def grant_connect_db_cmd(database: str, username: str):
 
 
 def grant_schema_cmd(schema: str, username: str):
-    return sql.SQL("GRANT USAGE ON schema {} TO {}").format(
+    return sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
         sql.Identifier(schema), sql.Identifier(username)
     )
 
@@ -251,5 +377,9 @@ def alter_search_path_cmd(schema: str, username: str):
     )
 
 
-if __name__ == "__main__":
-    initialize()
+def alter_search_path_app_user(cursor: Cursor, config: Env):
+    cursor.execute(
+        sql.SQL("ALTER USER {} SET search_path TO {},public").format(
+            sql.Identifier(config.app_user), sql.Identifier(config.schema)
+        )
+    )

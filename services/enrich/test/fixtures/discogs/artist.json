@@ -1,0 +1,32 @@
+{
+  "name": "Doomsday (23)",
+  "id": 9806635,
+  "resource_url": "https://api.discogs.com/artists/9806635",
+  "uri": "https://www.discogs.com/artist/9806635-Doomsday-23",
+  "releases_url": "https://api.discogs.com/artists/9806635/releases",
+  "images": [
+    {
+      "type": "primary",
+      "uri": "https://i.discogs.com/4XCMZ5Xh6ClKT4H9AxU2ZV_ooeYaWni57cw_WUoxxC4/rs:fit/g:sm/q:90/h:400/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9BLTk4MDY2/MzUtMTc0NjkzMDM2/Ni0xNjM0LmpwZWc.jpeg",
+      "resource_url": "https://i.discogs.com/4XCMZ5Xh6ClKT4H9AxU2ZV_ooeYaWni57cw_WUoxxC4/rs:fit/g:sm/q:90/h:400/w:600/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9BLTk4MDY2/MzUtMTc0NjkzMDM2/Ni0xNjM0LmpwZWc.jpeg",
+      "uri150": "https://i.discogs.com/Tw7VZVVWZeejCwlVE1IRUYZxrVSvpa-v0oNbb4fTH9I/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9BLTk4MDY2/MzUtMTc0NjkzMDM2/Ni0xNjM0LmpwZWc.jpeg",
+      "width": 600,
+      "height": 400
+    }
+  ],
+  "profile": "Crossover Thrash/Hardcore band from the Bay Area, California.",
+  "urls": [
+    "https://www.instagram.com/doomsday.ca",
+    "https://doomsdaycahc.bandcamp.com"
+  ],
+  "members": [
+    {
+      "id": 12305464,
+      "name": "Justin Martinez (8)",
+      "resource_url": "https://api.discogs.com/artists/12305464",
+      "active": true,
+      "thumbnail_url": ""
+    }
+  ],
+  "data_quality": "Needs Vote"
+}

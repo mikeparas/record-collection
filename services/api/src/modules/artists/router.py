@@ -19,6 +19,7 @@ from src.modules.artists.service import (
     ArtistService,
 )
 from src.shared.schemas import Pagination
+from src.shared.types import Integrations
 
 router = APIRouter(prefix="/artists", tags=["artists"])
 router_v2 = APIRouter(prefix="/artists_v2")
@@ -76,7 +77,9 @@ async def async_create_artist(
     artist = await service.create(
         name=artist_data.name,
         sort_name=artist_data.sort_name,
-        discogs_id=artist_data.discogs_id,
+        integrations=Integrations.model_validate(artist_data.integrations)
+        if artist_data.integrations is not None
+        else None,
     )
     # artist = service.create(name=artist_data.name, sort_name=artist_data.sort_name)
     response.headers["Location"] = urljoin(

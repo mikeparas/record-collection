@@ -1,6 +1,6 @@
 import typer
 
-from scripts.db_test_init import initialize_db, teardown_db
+from scripts.db_init import initialize_db, teardown_db
 
 app = typer.Typer()
 

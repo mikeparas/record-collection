@@ -15,6 +15,7 @@ from src.modules.artists.models import (
 from src.modules.artists.publisher import ArtistPublisher
 from src.modules.artists.schemas import ArtistMessage
 from src.shared.service import BaseService
+from src.shared.types import Integrations
 
 DEFAULT_LIST_LIMIT = 50
 
@@ -80,18 +81,16 @@ class ArtistAsyncService:
         self.publisher = publisher
 
     async def create(
-        self, *, name: str, sort_name: str, discogs_id: str | None = None
+        self, *, name: str, sort_name: str, integrations: Integrations | None = None
     ) -> ArtistModel:
-        artist = ArtistModel(name=name, sort_name=sort_name, discogs_id=discogs_id)
+        artist = ArtistModel(name=name, sort_name=sort_name, integrations=integrations)
         try:
             self.db.add(artist)
             await self.db.commit()
             await self.db.refresh(artist)
 
-            if discogs_id is not None:
-                await self.publisher.publish_message(
-                    ArtistMessage.model_validate(artist)
-                )
+            if artist.integrations is not None:
+                await self.publisher.publish_message(ArtistMessage(artist_id=artist.id))
 
             return artist
         except IntegrityError as exc:

@@ -1,22 +1,24 @@
 import json
-import os
 import re
 from http import HTTPStatus
 from typing import Any
 
 import pytest
-import pytest_asyncio
-from aio_pika.abc import AbstractChannel
+from aio_pika.abc import AbstractChannel, AbstractQueue
 from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
+from httpx import AsyncClient
 from sqlalchemy import select
 
 from src.core.database import AsyncSessionLocal, SessionLocal
-from src.core.publisher import RabbitMQConnector
 from src.main import app
 from src.modules.artists.models import ArtistModel
 from src.modules.artists.service import DEFAULT_LIST_LIMIT
-from tests.utils import assert_pagination, encode_cursor, generate_artists
+from src.shared.types import Integrations
+from tests.utils import (
+    assert_pagination,
+    encode_cursor,
+    generate_artists,
+)
 
 # load_dotenv()
 
@@ -26,19 +28,6 @@ client = TestClient(app)
 
 BASE_PATH = "/artists"
 BASE_PATH_ASYNC = "/artists_v2"
-
-
-# @pytest.fixture(scope="module", autouse=True)
-# def setup_db():
-#     init_db(os.getenv("DATABASE_URL", ""))
-
-
-@pytest_asyncio.fixture
-async def async_client():
-    async with AsyncClient(
-        transport=ASGITransport(app=app), base_url="http://test"
-    ) as client:
-        yield client
 
 
 @pytest.fixture(scope="module")
@@ -398,11 +387,11 @@ def test_get_artists_list_last_page(seed_artists: list[ArtistModel]):
 #
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 async def test_async_post_artist_success_no_discogs(
     async_client: AsyncClient,
     setup_async_database: None,
-    rabbitmq_channel: AbstractChannel,
+    rabbitmq_queue: AbstractQueue,
 ):
     artist_data = {"name": "New Artist", "sortName": "newartist"}
 
@@ -412,6 +401,7 @@ async def test_async_post_artist_success_no_discogs(
     assert artist["name"] == artist_data["name"]
     assert artist["sortName"] == artist_data["sortName"]
     assert artist["id"] is not None
+    assert artist["integrations"] is None
 
     headers = response.headers
     assert re.search(f"{BASE_PATH_ASYNC}/New Artist$", headers["Location"]) is not None
@@ -423,22 +413,22 @@ async def test_async_post_artist_success_no_discogs(
         db_artist = result.one_or_none()
         assert db_artist is not None
         assert artist["id"] == str(db_artist.id)
-        assert db_artist.discogs_id is None
+        assert db_artist.integrations is None
 
         await db.delete(db_artist)
         await db.commit()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 async def test_async_post_artist_success_with_discogs(
     async_client: AsyncClient,
-    rabbitmq_channel: AbstractChannel,
+    rabbitmq_queue: AbstractQueue,
     setup_async_database: None,
 ):
-    artist_data = {
+    artist_data: Any = {
         "name": "New Artist",
         "sortName": "newartist",
-        "discogsId": "abcd1234",
+        "integrations": {"discogs": 123456},
     }
 
     response = await async_client.post(BASE_PATH_ASYNC, json=artist_data)
@@ -447,6 +437,7 @@ async def test_async_post_artist_success_with_discogs(
     assert artist["name"] == artist_data["name"]
     assert artist["sortName"] == artist_data["sortName"]
     assert artist["id"] is not None
+    assert artist["integrations"] == artist_data["integrations"]
 
     headers = response.headers
     assert re.search(f"{BASE_PATH_ASYNC}/New Artist$", headers["Location"]) is not None
@@ -458,29 +449,26 @@ async def test_async_post_artist_success_with_discogs(
         db_artist = result.one_or_none()
         assert db_artist is not None
         assert artist["id"] == str(db_artist.id)
-        assert artist_data["discogsId"] == db_artist.discogs_id
+        assert db_artist.integrations is not None and artist_data[
+            "integrations"
+        ] == Integrations.model_dump(db_artist.integrations)
 
         await db.delete(db_artist)
         await db.commit()
 
     # check message queue
-    connection = RabbitMQConnector.get_connection()
-    async with connection.channel() as channel:
-        queue = await channel.get_queue(
-            os.getenv("MQ_QUEUE_EXTERNAL_DATA", ""), ensure=False
-        )
+    queue = rabbitmq_queue
 
-        message = await queue.get(timeout=2)
-        assert message is not None
+    message = await queue.get(timeout=2)
+    assert message is not None
 
-        async with message.process():
-            assert message.routing_key == "artist.created"
-            body = json.loads(message.body)
-            assert body["id"] == artist["id"]
-            assert body["discogsId"] == artist_data["discogsId"]
+    async with message.process():
+        assert message.routing_key == "artist.created"
+        body = json.loads(message.body)
+        assert body["artistId"] == artist["id"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 @pytest.mark.parametrize(
     "payload,error_details",
     [
@@ -598,7 +586,7 @@ async def test_async_post_artist_validation(
     error_details: list[dict[str, str]],
     async_client: AsyncClient,
     setup_async_database: None,
-    rabbitmq_channel: AbstractChannel,
+    rabbitmq_queue: AbstractQueue,
 ):
     response = await async_client.post(BASE_PATH_ASYNC, json=payload)
     assert response.status_code == 400
@@ -611,7 +599,7 @@ async def test_async_post_artist_validation(
         assert d in error_details
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="module")
 @pytest.mark.parametrize(
     "payload,error_msg",
     [
@@ -630,7 +618,7 @@ async def test_async_post_artist_duplicate(
     error_msg: str,
     async_client: AsyncClient,
     setup_async_database: None,
-    rabbitmq_channel: AbstractChannel,
+    rabbitmq_queue: AbstractChannel,
     # seed_duplicate_artist: ArtistModel,
 ):
     async with AsyncSessionLocal() as db:

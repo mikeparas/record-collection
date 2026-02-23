@@ -29,6 +29,7 @@ class RabbitMQConnector:
     @classmethod
     async def close(cls):
         if cls.connection is not None:
+            print("closing rabbitmq connection...")
             await cls.connection.close()
             cls.connection = None
 

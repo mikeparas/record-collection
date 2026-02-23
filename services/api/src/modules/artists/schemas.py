@@ -4,23 +4,20 @@ from typing import Annotated
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 from src.shared.schemas import BaseListResponse
+from src.shared.types import Integrations
 
 
 class Artist(BaseModel):
     id: uuid.UUID
     name: str
     sort_name: str = Field(serialization_alias="sortName")
+    integrations: Integrations | None = Field(default=None)
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
 
 class ArtistMessage(BaseModel):
-    id_: Annotated[uuid.UUID, Field(validation_alias="id", serialization_alias="id")]
-    name: str
-    sort_name: Annotated[str, Field(serialization_alias="sortName")]
-    discogs_id: Annotated[
-        str | None, Field(default=None, serialization_alias="discogsId")
-    ]
+    artist_id: Annotated[uuid.UUID, Field(serialization_alias="artistId")]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
@@ -32,7 +29,7 @@ class ArtistCreate(BaseModel):
         Field(validation_alias="sortName"),
         StringConstraints(min_length=1, strip_whitespace=True),
     ]
-    discogs_id: Annotated[str | None, Field(default=None, validation_alias="discogsId")]
+    integrations: Annotated[Integrations | None, Field(default=None)]
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

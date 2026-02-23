@@ -4,8 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev:nest": "pnpm --filter enrich start:dev"
+    "test": "pnpm --filter enrich test",
+    "test:cov": "pnpm --filter enrich test:cov",
+    "dev:nest": "pnpm --filter enrich start:dev",
+    "start": "pnpm --filter enrich start",
+    "migrate": "pnpm --filter enrich db:migrate-run",
+    "test:integration": "pnpm --filter enrich test:e2e",
+    "format": "pnpm --filter enrich format",
+    "lint": "pnpm --filter enrich lint",
+    "precommit": "pnpm format && pnpm lint"
   },
   "keywords": [],
   "author": "",
