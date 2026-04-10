@@ -154,8 +154,11 @@ def test_post_artist(mock_artist_service: MagicMock):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("req_headers", [{}, {"X-Correlation-ID": str(uuid.uuid4())}])
 async def test_async_post_artist(
-    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+    req_headers: dict[str, Any],
+    mock_async_artist_service: AsyncMock,
+    async_client: AsyncClient,
 ):
     discogs_id = 12345
     mock_artist = ArtistModel(
@@ -177,7 +180,9 @@ async def test_async_post_artist(
         "sortName": mock_artist.sort_name,
         "integrations": {"discogs": discogs_id},
     }
-    response = await async_client.post(BASE_PATH_ASYNC, json=artist_data)
+    response = await async_client.post(
+        BASE_PATH_ASYNC, json=artist_data, headers=req_headers
+    )
     assert response.status_code == 201
     artist = response.json()
     assert artist["id"] == str(mock_artist.id)
@@ -189,13 +194,17 @@ async def test_async_post_artist(
         else None
     )
 
-    headers = response.headers
-    assert re.search(f"{BASE_PATH_ASYNC}/New Artist$", headers["Location"]) is not None
+    resp_headers = response.headers
+    assert (
+        re.search(f"{BASE_PATH_ASYNC}/New Artist$", resp_headers["Location"])
+        is not None
+    )
 
     mock_async_artist_service.create.assert_called_once_with(
         name=mock_artist.name,
         sort_name=mock_artist.sort_name,
         integrations=Integrations(discogs=discogs_id),
+        correlation_id=req_headers.get("X-Correlation-ID"),
     )
 
 
@@ -513,7 +522,10 @@ async def test_async_post_artist_duplicate(
     )
 
     mock_async_artist_service.create.assert_called_once_with(
-        name=artist_data["name"], sort_name=artist_data["sortName"], integrations=None
+        name=artist_data["name"],
+        sort_name=artist_data["sortName"],
+        integrations=None,
+        correlation_id=None,
     )
 
 

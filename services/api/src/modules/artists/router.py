@@ -73,15 +73,18 @@ async def async_create_artist(
     response: Response,
     service: Annotated[ArtistAsyncService, Depends(get_artist_async_service)],
 ):
-    print("hello...")
+    # Extract correlation_id from request headers
+    # (from API Gateway or fallback to None for auto-generation)
+    correlation_id = request.headers.get("X-Correlation-ID")
+
     artist = await service.create(
         name=artist_data.name,
         sort_name=artist_data.sort_name,
         integrations=Integrations.model_validate(artist_data.integrations)
         if artist_data.integrations is not None
         else None,
+        correlation_id=correlation_id,
     )
-    # artist = service.create(name=artist_data.name, sort_name=artist_data.sort_name)
     response.headers["Location"] = urljoin(
         str(request.base_url), f"{router_v2.prefix}/{artist.name}"
     )

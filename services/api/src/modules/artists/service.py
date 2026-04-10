@@ -81,7 +81,12 @@ class ArtistAsyncService:
         self.publisher = publisher
 
     async def create(
-        self, *, name: str, sort_name: str, integrations: Integrations | None = None
+        self,
+        *,
+        name: str,
+        sort_name: str,
+        integrations: Integrations | None = None,
+        correlation_id: str | None = None,
     ) -> ArtistModel:
         artist = ArtistModel(name=name, sort_name=sort_name, integrations=integrations)
         try:
@@ -90,7 +95,10 @@ class ArtistAsyncService:
             await self.db.refresh(artist)
 
             if artist.integrations is not None:
-                await self.publisher.publish_message(ArtistMessage(artist_id=artist.id))
+                message = ArtistMessage(artist_id=artist.id)
+                await self.publisher.publish_message(
+                    message, correlation_id=correlation_id
+                )
 
             return artist
         except IntegrityError as exc:

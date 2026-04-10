@@ -1,5 +1,5 @@
-import json
 import re
+import uuid
 from http import HTTPStatus
 from typing import Any
 
@@ -15,6 +15,7 @@ from src.modules.artists.models import ArtistModel
 from src.modules.artists.service import DEFAULT_LIST_LIMIT
 from src.shared.types import Integrations
 from tests.utils import (
+    assert_artist_message_properties,
     assert_pagination,
     encode_cursor,
     generate_artists,
@@ -463,9 +464,12 @@ async def test_async_post_artist_success_with_discogs(
     assert message is not None
 
     async with message.process():
-        assert message.routing_key == "artist.created"
-        body = json.loads(message.body)
-        assert body["artistId"] == artist["id"]
+        # Assert artist message properties and routing
+        assert_artist_message_properties(
+            message,
+            uuid.UUID(artist["id"]),
+            actual_routing_key=str(message.routing_key),
+        )
 
 
 @pytest.mark.asyncio(loop_scope="module")

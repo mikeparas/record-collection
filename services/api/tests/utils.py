@@ -2,12 +2,17 @@ import base64
 import itertools
 import json
 import os
+import re
 import time
 import uuid
 from typing import Any, cast
 from urllib.parse import ParseResult, parse_qs, urlparse
 
+from aio_pika import DeliveryMode
+from aio_pika.abc import AbstractMessage
+
 from src.modules.artists.models import ArtistModel
+from src.modules.artists.publisher import MESSAGE_TYPE, ROUTING_KEY
 from src.modules.labels.models import LabelModel
 from src.modules.records.models import RecordData, RecordModel
 
@@ -174,3 +179,49 @@ def rmq_test_exchange_name():
 def rmq_test_queue_name():
     base_name = os.getenv("MQ_QUEUE_EXTERNAL_DATA", "external_data_v1")
     return f"test-{time.time()}-{base_name}"
+
+
+def assert_artist_message_properties(
+    message: AbstractMessage,
+    artist_id: uuid.UUID,
+    actual_routing_key: str,
+    expected_routing_key: str = ROUTING_KEY,
+    expected_type: str = MESSAGE_TYPE,
+    expected_correlation_id: str | None = None,
+) -> None:
+    """Assert that the AMQP message has expected properties and body.
+
+    Args:
+        message: The AMQP message to validate
+        artist_id: The expected artist ID in the message body
+        routing_key: The expected routing key (defaults to ROUTING_KEY)
+        expected_correlation_id: Optional correlation ID to assert matches the message
+    """
+    # Verify message body contains only artist_id
+    body = json.loads(message.body)
+    assert body["artistId"] == str(artist_id)
+
+    # Verify AMQP message properties
+    assert message.type == expected_type
+    assert message.message_id is not None
+    assert message.correlation_id is not None
+    assert message.timestamp is not None
+    assert message.content_type == "application/json"
+    assert message.delivery_mode == DeliveryMode.PERSISTENT
+
+    # Verify UUID format for message_id and correlation_id
+    assert re.match(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        message.message_id,
+    ), f"message_id {message.message_id} is not a valid UUID"
+    assert re.match(
+        r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        message.correlation_id,
+    ), f"correlation_id {message.correlation_id} is not a valid UUID"
+
+    # Verify routing key
+    assert actual_routing_key == expected_routing_key
+
+    # If expected correlation_id provided, verify it matches
+    if expected_correlation_id is not None:
+        assert message.correlation_id == expected_correlation_id
