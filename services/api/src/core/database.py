@@ -26,10 +26,8 @@ class DatabaseConnector:
         cls, *, host: str, port: int, database: str, username: str, password: str
     ) -> Engine:
         if cls.sync_engine is not None:
-            print("returning cached sync_engine...")
             return cls.sync_engine
 
-        print(f"initializing new engine {(host, port, database, username)}")
         database_url = URL.create(
             "postgresql+psycopg",
             username=username,
@@ -41,7 +39,6 @@ class DatabaseConnector:
 
         cls.sync_engine = create_engine(database_url)
         SessionLocal.configure(bind=cls.sync_engine)
-        print("returning new sync_engine...")
         return cls.sync_engine
 
     @classmethod

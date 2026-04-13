@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:17
+    image: postgres:17-alpine3.23
     volumes:
       - postgres_data:/var/lib/postgresql/data
     environment:
@@ -15,7 +15,7 @@ services:
       retries: 5
 
   rabbitmq:
-    image: rabbitmq:4-management
+    image: rabbitmq:4.2-management-alpine
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
       - ./secrets/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie

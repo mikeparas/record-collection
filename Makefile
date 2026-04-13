@@ -8,7 +8,7 @@ PYTHON_DB_INIT_SCRIPT=$(PYTHON_UV_RUN_API) -m scripts.db_init_cli
 PYTHON_DB_SETUP=$(PYTHON_DB_INIT_SCRIPT) setup
 PYTHON_DB_MIGRATE=$(PYTHON_UV_RUN_API) alembic upgrade head
 
-COMPOSE_TOOLS_RUN=podman compose --profile tools run --rm
+COMPOSE_TOOLS_RUN=docker compose --profile tools run --rm
 
 sync_api:
 	uv sync --all-groups --all-extras
@@ -30,17 +30,17 @@ env_file:
 	ln -sf $(realpath .env) services/enrich/.env
 
 build:
-	podman compose build
-	podman compose --profile tools build
+	docker compose build
+	docker compose --profile tools build
 
 build_service:
-	podman compose build $(SERVICE)
+	docker compose build $(SERVICE)
 
 build_tools_service:
-	podman compose --profile tools build $(SERVICE)
+	docker compose --profile tools build $(SERVICE)
 
 dev: secrets-check
-	podman compose up -d
+	docker compose up -d
 
 db_setup:
 	$(COMPOSE_TOOLS_RUN) -e DB_NAME=$(PROD_DB) db_setup $(PYTHON_DB_SETUP)
@@ -102,4 +102,4 @@ precommit:
 	pnpm precommit
 
 clean:
-	podman compose down -v
+	docker compose down -v

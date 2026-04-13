@@ -1,10 +1,25 @@
 # Record Collection
 
-This project provides a simple interface for managing a record collection (yes, Discogs is a thing).
+> :warning: **Status:** Early development / Active work in progress.
+
+This is a personal project exploring microservices architecture. This application provides an interface for managing a record collection. It's not meant to replace Discogs but rather to own my own record collection data while diving into various software engineering concepts.
 
 ## Overview
 
-FastAPI + PostgreSQL + RabbitMQ + NestJS Microservice (future)
+Python FastAPI + PostgreSQL + RabbitMQ + NestJS Microservice
+
+### Stack Highlights
+
+* **API**: Python, FastAPI Pydantic
+* **Enrichment**: Node.js, NestJS
+* **Database**: PostgreSQL, SQLAlchemy (Python), TypeORM (Node)
+* **Messaging**: RabbitMQ with topic exchanges and queues
+* **Infrastructure**: Docker Compose (Dev)
+
+## Documentation
+[ARCHITECTURE.md](ARCHITECTURE.md)
+
+[ROADMAP.md](ROADMAP.md)
 
 ## Quickstart
 
@@ -28,9 +43,9 @@ make test_integrate  # run integrations tests
 | --- | --- |
 | `uv` | https://docs.astral.sh/uv/getting-started/installation/ |
 | `pnpm` | https://pnpm.io/installation |
-| `podman` | https://podman.io/docs/installation |
+| `docker` | https://docs.docker.com/get-started/introduction/get-docker-desktop/ |
 
-Podman is used as a drop-in replacement for Docker. If using Docker (or other container tool), simply replace `podman` in the `Makefile` targets.
+If desired, [Podman](https://podman.io/) can be used as a drop-in replacement for Docker.
 
 ## Commands
 
@@ -110,3 +125,23 @@ make precommit
 ```
 
 > TODO: Probably have actual precommit hook.
+
+## Current Status
+
+> :warning: This project is currently optimized for local development and far from production-ready.
+
+### :white_check_mark: Completed
+* Database setup scripts including database creation, user creation with privileges, and migrations
+* Async FastAPI endpoints for artist creation with message publishing to RabbitMQ
+* Sync FastAPI endpoints for artists (list, fetch), labels (create, list, fetch), and collection items (create, list, fetch). Implemented before introducting message queue.
+* Artist enrichment on creation with Discogs integration.
+* Unit and integration tests.
+* Docker Compose for dev environment.
+
+### :construction: In Progress
+* Full E2E tests.
+* Convert all API endpoints to async.
+* Label and collection item enrichment.
+
+### :spiral_notepad: Planned
+* See [ROADMAP.md](ROADMAP.md).
