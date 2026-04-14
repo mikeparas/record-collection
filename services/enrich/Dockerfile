@@ -1,4 +1,4 @@
-FROM node:25-alpine3.23 AS builder
+FROM node:24-alpine3.23 AS builder
 RUN corepack enable pnpm && corepack install -g pnpm@latest
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
