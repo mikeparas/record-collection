@@ -75,6 +75,9 @@ jobs:
         with:
           enable-cache: true
 
+      - name: Prepare environment files
+        run: cp .env.sample .env && make env_file && make secrets
+
       - name: Install Python dependencies
         run: make sync_api
 
@@ -86,9 +89,6 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Prepare environment files
-        run: cp .env.sample .env && make env_file && make secrets
 
       - name: Run Python integration tests
         run: make test_api_integrate
@@ -111,6 +111,9 @@ jobs:
           node-version: "24"
           cache: pnpm
 
+      - name: Prepare environment files
+        run: cp .env.sample .env && make env_file && make secrets
+
       - name: Install Node dependencies
         run: make sync_enrich
 
@@ -122,9 +125,6 @@ jobs:
         with:
           username: ${{ vars.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Prepare environment files
-        run: cp .env.sample .env && make env_file && make secrets
 
       - name: Run Node integration tests
         run: make test_enrich_integrate
