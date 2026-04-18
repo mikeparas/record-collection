@@ -58,7 +58,7 @@ db_enrich_migrate_generate:
 dev_full: dev db_setup db_migrate
 
 test_api_unit:
-	DB_NAME=test uv run pytest -m "not e2e"
+	DB_NAME=test uv run --directory services/api pytest tests/unit
 
 test_enrich_unit:
 	pnpm test
