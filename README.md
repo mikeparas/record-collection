@@ -37,7 +37,7 @@ make test_integrate  # run integrations tests
 | Runtime | Version |
 | --- | --- |
 | Python | 3.14 |
-| Node | 25.2.1 |
+| Node | 24 (LTS) |
 
 | Tool | Installation |
 | --- | --- |
