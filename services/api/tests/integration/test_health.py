@@ -8,8 +8,6 @@ from httpx import AsyncClient
 
 BASE_PATH = "/health"
 
-pytestmark = pytest.mark.e2e
-
 
 # @pytest_asyncio.fixture(scope="module", loop_scope="module")
 # async def async_client():
