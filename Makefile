@@ -58,7 +58,7 @@ db_enrich_migrate_generate:
 dev_full: dev db_setup db_migrate
 
 test_api_unit:
-	DB_NAME=test uv run pytest -m "not e2e"
+	DB_NAME=test uv run --directory services/api pytest tests/unit
 
 test_enrich_unit:
 	pnpm test
@@ -79,7 +79,7 @@ test_db_teardown:
 	$(COMPOSE_TOOLS_RUN) -e DB_NAME=$(TEST_DB) -e MODE=test db_setup $(PYTHON_DB_INIT_SCRIPT) teardown
 
 api_integrate:
-	$(COMPOSE_TOOLS_RUN) api_integrate
+	$(COMPOSE_TOOLS_RUN) -e PYTEST_ARGS=tests/integration api_tests
 
 enrich_integrate:
 	$(COMPOSE_TOOLS_RUN) enrich_integrate

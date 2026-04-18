@@ -13,9 +13,8 @@ CMD uv run --directory services/api fastapi run --workers 4 src/main.py
 FROM api AS db_setup
 CMD uv run --directory services/api python -m scripts.db_init
 
-# e2e
-FROM builder AS e2e
-# COPY services/api ./services/api
+# tests
+FROM builder AS tests
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen
-CMD uv run pytest -m e2e
+CMD uv run --directory services/api pytest ${PYTEST_ARGS:-tests/integration}

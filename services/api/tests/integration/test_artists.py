@@ -21,10 +21,6 @@ from tests.utils import (
     generate_artists,
 )
 
-# load_dotenv()
-
-pytestmark = pytest.mark.e2e
-
 client = TestClient(app)
 
 BASE_PATH = "/artists"

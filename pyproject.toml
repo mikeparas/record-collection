@@ -51,9 +51,6 @@ select = [
 ]
 
 [tool.pytest.ini_options]
-markers = [
-    "e2e: mark a test as end to end"
-]
 addopts = "-v --cov=src --cov-report term-missing --cov-report html"
 
 [tool.poe.tasks.format]

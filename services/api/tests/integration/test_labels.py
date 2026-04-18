@@ -14,8 +14,6 @@ from tests.utils import assert_pagination, encode_cursor, generate_labels
 
 # load_dotenv(".env.test")
 
-pytestmark = pytest.mark.e2e
-
 client = TestClient(app)
 
 BASE_PATH = "/labels"

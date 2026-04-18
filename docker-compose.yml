@@ -65,11 +65,11 @@ services:
     profiles:
       - tools
 
-  api_integrate:
+  api_tests:
     build:
       context: .
       dockerfile: services/api/Dockerfile
-      target: e2e
+      target: tests
     depends_on:
       db:
         condition: service_healthy
