@@ -13,9 +13,10 @@ CMD pnpm start
 
 # migrations
 FROM builder AS node_migrate
+RUN --mount=type=cache,target=/pnpm/store pnpm install --frozen-lockfile
 CMD pnpm --loglevel verbose migrate
 
 # integration
-FROM builder AS integration
+FROM node_migrate AS integration
 ENV COVERAGE_ENABLED=false
 CMD pnpm --loglevel verbose test:integration --coverage=$COVERAGE_ENABLED
