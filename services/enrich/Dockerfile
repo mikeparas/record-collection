@@ -7,6 +7,7 @@ COPY services/enrich ./services/enrich
 
 # nest app (prune dev dependencies)
 FROM builder AS enrich
+ENV CI=true
 RUN --mount=type=cache,target=/pnpm/store pnpm prune --prod
 CMD pnpm start
 
