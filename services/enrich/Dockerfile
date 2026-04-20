@@ -2,8 +2,8 @@ FROM node:24-alpine3.23 AS builder
 RUN corepack enable pnpm && corepack install -g pnpm@latest
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN --mount=type=cache,target=/pnpm/store pnpm fetch && pnpm install --frozen-lockfile
 COPY services/enrich ./services/enrich
+RUN --mount=type=cache,target=/pnpm/store pnpm fetch && pnpm install --frozen-lockfile
 
 # nest app (prune dev dependencies)
 FROM builder AS enrich

@@ -128,8 +128,8 @@ services:
       dockerfile: services/enrich/Dockerfile
       target: node_migrate
     depends_on:
-      enrich:
-        condition: service_started
+      db:
+        condition: service_healthy
     volumes:
       - ./services/enrich:/app/services/enrich
     env_file:
