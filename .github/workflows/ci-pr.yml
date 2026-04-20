@@ -87,6 +87,15 @@ jobs:
       - name: Install dependencies
         run: make sync
 
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Pull containers for integration tests
+        run: docker compose pull db rabbitmq
+
       - name: Cache Python dependencies
         uses: actions/cache@v4
         with:
@@ -104,6 +113,14 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+
+      - name: Cache Docker
+        uses: actions/cache@v4
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
 
   python:
     name: Python (unit → integration)
@@ -141,11 +158,11 @@ jobs:
       - name: Run Python unit tests
         run: make test_api_unit
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ vars.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore Node cache
         uses: actions/cache@v4
@@ -156,6 +173,14 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+
+      - name: Restore Docker cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
 
       - name: Run Python integration tests
         run: make test_api_integrate
@@ -197,11 +222,11 @@ jobs:
       - name: Run Node unit tests
         run: make test_enrich_unit
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ vars.DOCKERHUB_USERNAME }}
+      #     password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore Python cache
         uses: actions/cache@v4
@@ -210,6 +235,14 @@ jobs:
           key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-python-
+
+      - name: Restore Docker cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.docker
+          key: ${{ runner.os }}-docker-${{ hashFiles('docker-compose.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-docker-
 
       - name: Run Node integration tests
         run: make test_enrich_integrate
