@@ -5,7 +5,7 @@ on:
     outputs:
       passed:
         description: "Python and Node tests passed"
-        value: ${{ jobs.python.result == 'success' && jobs.node.result == 'success' }}
+        value: ${{ jobs.python_unit.result == 'success' && jobs.node_unit.result == 'success'  && jobs.integration.result == 'success' }}
 
 jobs:
   detect_changes:
@@ -90,7 +90,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
-  python:
+  python_unit:
     name: Python (unit → integration)
     runs-on: ubuntu-latest
     needs: [detect_changes, setup]
@@ -123,20 +123,20 @@ jobs:
       - name: Run Python unit tests
         run: make test_api_unit
 
-      - name: Restore Node cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            node_modules
-            services/enrich/node_modules
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
+      # - name: Restore Node cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: |
+      #       node_modules
+      #       services/enrich/node_modules
+      #     key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-node-
 
-      - name: Run Python integration tests
-        run: make test_api_integrate
+      # - name: Run Python integration tests
+      #   run: make test_api_integrate
 
-  node:
+  node_unit:
     name: Node (unit → integration)
     runs-on: ubuntu-latest
     needs: [detect_changes, setup]
@@ -170,6 +170,29 @@ jobs:
       - name: Run Node unit tests
         run: make test_enrich_unit
 
+      # - name: Restore Python cache
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: .venv
+      #     key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-python-
+
+      # - name: Run Node integration tests
+      #   run: make test_enrich_integrate
+
+  integration:
+    name: Integration (Python → Node)
+    runs-on: ubuntu-latest
+    needs: [python_unit, node_unit]
+    if: ${{ needs.python_unit.result == 'success' || needs.node_unit.result == 'success' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare environment files
+        run: cp .env.sample .env && make env_file && make secrets
+
       - name: Restore Python cache
         uses: actions/cache@v4
         with:
@@ -178,5 +201,20 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-python-
 
+      - name: Restore Node cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            services/enrich/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Run Python integration tests
+        if: ${{ needs.python_unit.result == 'success' }}
+        run: make test_api_integrate
+      
       - name: Run Node integration tests
+        if: ${{ needs.node_unit.result == 'success' }}
         run: make test_enrich_integrate
