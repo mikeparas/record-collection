@@ -1,0 +1,31 @@
+name: CI Pull Request
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "services/api/**"
+      - "services/enrich/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "docker-compose.yml"
+      - "services/api/Dockerfile"
+      - "services/enrich/Dockerfile"
+      - "Makefile"
+      - ".github/workflows/ci-pr.yml"
+      - ".github/workflows/ci-main.yml"
+      - ".github/workflows/ci-core.yml"
+
+concurrency:
+  group: ci-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Core CI Jobs
+    uses: ./.github/workflows/ci-core.yml
+    secrets: inherit

@@ -1,0 +1,40 @@
+name: CI Main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "services/api/**"
+      - "services/enrich/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "docker-compose.yml"
+      - "services/api/Dockerfile"
+      - "services/enrich/Dockerfile"
+      - "Makefile"
+      - ".github/workflows/ci-pr.yml"
+      - ".github/workflows/ci-main.yml"
+      - ".github/workflows/ci-core.yml"
+
+concurrency:
+  group: ci-main-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Core CI Jobs
+    uses: ./.github/workflows/ci-core.yml
+    secrets: inherit
+
+  e2e:
+    name: E2E tests (placeholder)
+    runs-on: ubuntu-latest
+    needs: core
+    if: ${{ needs.core.outputs.passed == 'true' }}
+    steps:
+      - name: Placeholder for future E2E tests
+        run: echo "E2E tests will be enabled in a future change."
