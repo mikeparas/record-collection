@@ -2,6 +2,10 @@ name: CI Core Workflow
 
 on:
   workflow_call:
+    outputs:
+      passed:
+        description: "Python and Node tests passed"
+        value: ${{ jobs.python.result == 'success' && jobs.node.result == 'success' }}
 
 jobs:
   detect_changes:
@@ -194,6 +198,3 @@ jobs:
 
       - name: Run Node integration tests
         run: make test_enrich_integrate
-
-outputs:
-  passed: ${{jobs.python.result == 'success' && jobs.node.result == 'success' }}
