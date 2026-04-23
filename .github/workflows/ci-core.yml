@@ -72,12 +72,6 @@ jobs:
       - name: Install dependencies
         run: make sync
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Cache Python dependencies
         uses: actions/cache@v4
         with:
@@ -129,12 +123,6 @@ jobs:
       - name: Run Python unit tests
         run: make test_api_unit
 
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Restore Node cache
         uses: actions/cache@v4
         with:
@@ -181,12 +169,6 @@ jobs:
 
       - name: Run Node unit tests
         run: make test_enrich_unit
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ vars.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Restore Python cache
         uses: actions/cache@v4

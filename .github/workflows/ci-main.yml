@@ -28,7 +28,6 @@ jobs:
   core:
     name: Core CI Jobs
     uses: ./.github/workflows/ci-core.yml
-    secrets: inherit
 
   e2e:
     name: E2E tests (placeholder)
