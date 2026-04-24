@@ -123,19 +123,6 @@ jobs:
       - name: Run Python unit tests
         run: make test_api_unit
 
-      # - name: Restore Node cache
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: |
-      #       node_modules
-      #       services/enrich/node_modules
-      #     key: ${{ runner.os }}-node-${{ hashFiles('**/package.json') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-node-
-
-      # - name: Run Python integration tests
-      #   run: make test_api_integrate
-
   node_unit:
     name: Node (unit → integration)
     runs-on: ubuntu-latest
@@ -169,17 +156,6 @@ jobs:
 
       - name: Run Node unit tests
         run: make test_enrich_unit
-
-      # - name: Restore Python cache
-      #   uses: actions/cache@v4
-      #   with:
-      #     path: .venv
-      #     key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-python-
-
-      # - name: Run Node integration tests
-      #   run: make test_enrich_integrate
 
   integration:
     name: Integration (Python → Node)
