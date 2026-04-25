@@ -16,7 +16,7 @@ jobs:
       shared: ${{ steps.filter.outputs.shared }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Detect changed files
         id: filter
@@ -48,7 +48,7 @@ jobs:
     if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -97,7 +97,7 @@ jobs:
     if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.shared == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -130,7 +130,7 @@ jobs:
     if: ${{ needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up pnpm
         uses: pnpm/action-setup@v4
@@ -164,7 +164,7 @@ jobs:
     if: ${{ needs.python_unit.result == 'success' || needs.node_unit.result == 'success' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
