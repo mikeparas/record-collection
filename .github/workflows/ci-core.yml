@@ -73,7 +73,7 @@ jobs:
         run: make sync
 
       - name: Cache Python dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .venv
           key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
@@ -81,7 +81,7 @@ jobs:
             ${{ runner.os }}-python-
 
       - name: Cache Node dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -113,7 +113,7 @@ jobs:
         run: cp .env.sample .env && make env_file && make secrets
 
       - name: Restore Python cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .venv
           key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
@@ -145,7 +145,7 @@ jobs:
         run: cp .env.sample .env && make env_file && make secrets
 
       - name: Restore Node cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
@@ -170,7 +170,7 @@ jobs:
         run: cp .env.sample .env && make env_file && make secrets
 
       - name: Restore Python cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .venv
           key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
@@ -178,7 +178,7 @@ jobs:
             ${{ runner.os }}-python-
 
       - name: Restore Node cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             node_modules
