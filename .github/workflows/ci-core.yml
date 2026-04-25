@@ -42,7 +42,7 @@ jobs:
               - ".github/workflows/ci-core.yml"
 
   setup:
-    name: Cache dependencies
+    name: Download and cache dependencies
     runs-on: ubuntu-latest
     needs: detect_changes
     if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
@@ -91,7 +91,7 @@ jobs:
             ${{ runner.os }}-node-
 
   python_unit:
-    name: Python (unit → integration)
+    name: Python unit tests
     runs-on: ubuntu-latest
     needs: [detect_changes, setup]
     if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.shared == 'true' }}
@@ -124,7 +124,7 @@ jobs:
         run: make test_api_unit
 
   node_unit:
-    name: Node (unit → integration)
+    name: Node unit tests
     runs-on: ubuntu-latest
     needs: [detect_changes, setup]
     if: ${{ needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
@@ -158,7 +158,7 @@ jobs:
         run: make test_enrich_unit
 
   integration:
-    name: Integration (Python → Node)
+    name: Integration tests (Python → Node)
     runs-on: ubuntu-latest
     needs: [python_unit, node_unit]
     if: ${{ needs.python_unit.result == 'success' || needs.node_unit.result == 'success' }}
@@ -187,10 +187,16 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - name: Integration test setup
+        run: make test_integrate_pre
+
       - name: Run Python integration tests
         if: ${{ needs.python_unit.result == 'success' }}
-        run: make test_api_integrate
+        run: make api_integrate
       
       - name: Run Node integration tests
         if: ${{ needs.node_unit.result == 'success' }}
-        run: make test_enrich_integrate
+        run: make enrich_integrate
+
+      - name: Integration test teardown
+        run: make test_db_teardown
