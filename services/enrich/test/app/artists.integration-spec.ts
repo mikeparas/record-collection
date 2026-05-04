@@ -8,10 +8,9 @@ import { ArtistExtra } from '../../src/modules/artists/entities/artist-extra.ent
 import { getRepositoryToken } from '@nestjs/typeorm';
 import RMQClient from '../utils/rmq.client';
 import { randomUUID } from 'crypto';
-import * as nock from 'nock';
+import { default as nock } from 'nock';
 
 import * as discogsArtist from '../fixtures/discogs/artist.json';
-import { DiscogsArtist } from '../../src/modules/shared/discogs/schemas/artist.schema';
 import { setTimeout } from 'timers/promises';
 import { RMQTypeDeserializer } from '../../src/common/microservices/deserializers/rmq-type.deserializer';
 
@@ -117,7 +116,7 @@ describe('Integration Tests - Artists', () => {
           name: discogsArtist.name,
           url: discogsArtist.uri,
           images: [discogsArtist.images[0].uri],
-        } as DiscogsArtist,
+        },
       });
     });
   });

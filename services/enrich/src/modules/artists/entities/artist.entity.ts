@@ -13,26 +13,26 @@ export class Artist {
     type: 'uuid',
     nullable: false,
   })
-  id: string;
+  id!: string;
 
   @Column({
     type: 'varchar',
     nullable: false,
   })
-  name: string;
+  name!: string;
 
   @Column({
     name: 'sort_name',
     type: 'varchar',
     nullable: false,
   })
-  sortName: string;
+  sortName!: string;
 
   @Column({
     type: 'jsonb',
     default: {},
   })
-  integrations: Integrations;
+  integrations!: Integrations;
 
   constructor(partial: Partial<Artist>) {
     Object.assign(this, partial);

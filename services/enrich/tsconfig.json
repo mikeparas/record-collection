@@ -18,5 +18,6 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true,
     "resolveJsonModule": true,
+    "types": ["express", "jest", "node", "supertest"]
   }
 }
