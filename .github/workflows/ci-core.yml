@@ -2,6 +2,11 @@ name: CI Core Workflow
 
 on:
   workflow_call:
+    inputs:
+      cache-key:
+        description: "A unique key used for the cache"
+        required: true
+        type: string
     outputs:
       passed:
         description: "Python and Node tests passed"
@@ -79,25 +84,25 @@ jobs:
         uses: actions/cache@v5.0.5
         with:
           path: .venv
-          key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-python-
+            ${{ runner.os }}-python-${{ inputs.cache-key }}-
 
       - name: Cache root Node dependencies
         uses: actions/cache@v5.0.5
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-root-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-root-
+            ${{ runner.os }}-node-root-${{ inputs.cache-key }}-
 
       - name: Cache enrich service dependencies
         uses: actions/cache@v5.0.5
         with:
           path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-enrich-
+            ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-
 
   python_unit:
     name: Python unit tests
@@ -125,9 +130,9 @@ jobs:
         uses: actions/cache@v5.0.5
         with:
           path: .venv
-          key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-python-
+            ${{ runner.os }}-python-${{ inputs.cache-key }}-
 
       - name: Run Python unit tests
         run: make test_api_unit
@@ -157,17 +162,17 @@ jobs:
         uses: actions/cache@v5.0.5
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-root-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-root-
+            ${{ runner.os }}-node-root-${{ inputs.cache-key }}-
 
       - name: Restore enrich service cache
         uses: actions/cache@v5.0.5
         with:
           path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-enrich-
+            ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-
 
       - name: Run Node unit tests
         run: make test_enrich_unit
@@ -207,25 +212,25 @@ jobs:
         uses: actions/cache@v5.0.5
         with:
           path: .venv
-          key: ${{ runner.os }}-python-${{ hashFiles('**/pyproject.toml') }}
+          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
           restore-keys: |
-            ${{ runner.os }}-python-
+            ${{ runner.os }}-python-${{ inputs.cache-key }}-
 
       - name: Restore root Node cache
         uses: actions/cache@v5.0.5
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-root-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-root-
+            ${{ runner.os }}-node-root-${{ inputs.cache-key }}-
 
       - name: Restore enrich service cache
         uses: actions/cache@v5.0.5
         with:
           path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-node-enrich-
+            ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-
 
       - name: Debug Node dependencies
         run: ls services/enrich/node_modules/typeorm
