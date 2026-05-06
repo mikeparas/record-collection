@@ -27,12 +27,12 @@ export class ArtistExtra {
   @CreateDateColumn({
     name: 'created_at',
   })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     name: 'updated_at',
   })
-  updatedAt: Date;
+  updatedAt!: Date;
 
   @Column('jsonb')
   data: ArtistExtraData | null;
