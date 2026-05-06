@@ -28,3 +28,5 @@ jobs:
   core:
     name: Core CI Jobs
     uses: ./.github/workflows/ci-core.yml
+    with:
+      cache-key: pr-${{ github.event.pull_request.number }}
