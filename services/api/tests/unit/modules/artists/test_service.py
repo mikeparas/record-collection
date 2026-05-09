@@ -405,3 +405,21 @@ async def test_async_get_by_id():
     assert artist.sort_name == mock_artist.sort_name
 
     assert_select(str(mock_id), cast(Mock, mock_session))
+
+
+@pytest.mark.asyncio
+async def test_async_get_by_name():
+    mock_id = uuid.uuid4()
+    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
+    mock_artist.id = mock_id
+
+    mock_session = get_mock_async_session(scalars_one_or_none_return=mock_artist)
+
+    artist_service = ArtistAsyncService(mock_session, AsyncMock())
+    artist = await artist_service.get_by(mock_artist.name)
+    assert artist is not None
+    assert artist.id == mock_id
+    assert artist.name == mock_artist.name
+    assert artist.sort_name == mock_artist.sort_name
+
+    assert_select(mock_artist.name, cast(Mock, mock_session))

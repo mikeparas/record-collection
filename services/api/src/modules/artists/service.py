@@ -83,8 +83,11 @@ class ArtistAsyncService:
         self.publisher = publisher
 
     async def get_by(self, identifier: str) -> ArtistModel | None:
-        uuid_id = uuid.UUID(identifier)
-        stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
+        try:
+            uuid_id = uuid.UUID(identifier)
+            stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
+        except ValueError:
+            stmt = select(ArtistModel).where(ArtistModel.name == identifier)
 
         result = await self.db.scalars(stmt)
         return result.one_or_none()
