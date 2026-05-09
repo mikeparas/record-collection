@@ -137,3 +137,30 @@ def list_artists(
             limit=limit, next_cursor=next_cursor, next_link=next_link
         ),
     )
+
+
+@router_v2.get(
+    "/{identifier}",
+    response_model=Artist,
+    responses={
+        404: {"description": "Artist Not Found"},
+    },
+)
+async def async_get_single_artist(
+    identifier: Annotated[
+        str,
+        Path(title="Artist Identifier", description="UUID identifier or string name"),
+    ],
+    service: Annotated[ArtistAsyncService, Depends(get_artist_async_service)],
+):
+    """
+    Get a single artist for a given UUID identifer or name
+    """
+    artist = await service.get_by(identifier)
+
+    # if artist is None:
+    #     raise NotFoundException(
+    #         "ARTIST_NOT_FOUND", f"No artist found for {identifier}."
+    #     )
+
+    return artist

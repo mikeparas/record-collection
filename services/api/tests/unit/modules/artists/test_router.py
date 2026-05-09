@@ -663,3 +663,31 @@ def test_get_artists_list_cursor(mock_artist_service: MagicMock):
     mock_artist_service.list.assert_called_once_with(
         limit=DEFAULT_LIST_LIMIT, last_cursor=cursor
     )
+
+
+@pytest.mark.asyncio
+async def test_async_get_artist_by_id_success(
+    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+):
+    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
+    mock_artist.id = uuid.uuid4()
+
+    mock_async_artist_service.get_by.return_value = mock_artist
+
+    def override_artist_service():
+        return mock_async_artist_service
+
+    app.dependency_overrides[get_artist_async_service] = override_artist_service
+
+    mock_async_artist_service.get_by.return_value = mock_artist
+
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{mock_artist.id}")
+    assert response.status_code == 200
+    artist = response.json()
+    assert artist["id"] == str(mock_artist.id)
+    assert artist["name"] == mock_artist.name
+    assert artist["sortName"] == mock_artist.sort_name
+
+    mock_async_artist_service.get_by.assert_called_once_with(str(mock_artist.id))
+
+    del app.dependency_overrides[get_artist_service]
