@@ -717,3 +717,27 @@ async def test_async_get_artist_by_name_success(
     mock_async_artist_service.get_by.assert_called_once_with(mock_artist.name)
 
     del app.dependency_overrides[get_artist_async_service]
+
+
+@pytest.mark.asyncio
+async def test_async_get_artist_not_found(
+    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+):
+    mock_async_artist_service.get_by.return_value = None
+
+    def override_artist_service():
+        return mock_async_artist_service
+
+    app.dependency_overrides[get_artist_async_service] = override_artist_service
+
+    name = "Not Found"
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{name}")
+    assert response.status_code == 404
+    body = response.json()
+    error = body.get("error")
+    assert error is not None
+    assert error["type"] == "not_found"
+    assert error["message"] == f"No artist found for {name}."
+    assert error["code"] == "ARTIST_NOT_FOUND"
+
+    mock_async_artist_service.get_by.assert_called_once_with(name)

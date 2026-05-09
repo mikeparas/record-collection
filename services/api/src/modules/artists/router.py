@@ -158,9 +158,9 @@ async def async_get_single_artist(
     """
     artist = await service.get_by(identifier)
 
-    # if artist is None:
-    #     raise NotFoundException(
-    #         "ARTIST_NOT_FOUND", f"No artist found for {identifier}."
-    #     )
+    if artist is None:
+        raise NotFoundException(
+            "ARTIST_NOT_FOUND", f"No artist found for {identifier}."
+        )
 
     return artist
