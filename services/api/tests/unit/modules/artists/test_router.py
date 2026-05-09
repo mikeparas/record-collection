@@ -47,7 +47,7 @@ def mock_artist_service():
 
 
 @pytest.fixture
-def mock_async_artist_service():
+def mock_artist_async_service():
     return AsyncMock(spec=ArtistAsyncService)
 
 
@@ -157,7 +157,7 @@ def test_post_artist(mock_artist_service: MagicMock):
 @pytest.mark.parametrize("req_headers", [{}, {"X-Correlation-ID": str(uuid.uuid4())}])
 async def test_async_post_artist(
     req_headers: dict[str, Any],
-    mock_async_artist_service: AsyncMock,
+    mock_artist_async_service: AsyncMock,
     async_client: AsyncClient,
 ):
     discogs_id = 12345
@@ -168,10 +168,10 @@ async def test_async_post_artist(
     )
     mock_artist.id = uuid.uuid4()
 
-    mock_async_artist_service.create.return_value = mock_artist
+    mock_artist_async_service.create.return_value = mock_artist
 
     def override_artist_service():
-        return mock_async_artist_service
+        return mock_artist_async_service
 
     app.dependency_overrides[get_artist_async_service] = override_artist_service
 
@@ -200,7 +200,7 @@ async def test_async_post_artist(
         is not None
     )
 
-    mock_async_artist_service.create.assert_called_once_with(
+    mock_artist_async_service.create.assert_called_once_with(
         name=mock_artist.name,
         sort_name=mock_artist.sort_name,
         integrations=Integrations(discogs=discogs_id),
@@ -496,11 +496,11 @@ def test_post_artist_duplicate(mock_artist_service: MagicMock):
 
 @pytest.mark.asyncio
 async def test_async_post_artist_duplicate(
-    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+    mock_artist_async_service: AsyncMock, async_client: AsyncClient
 ):
     artist_data = {"name": "Duplicate Artist", "sortName": "duplicateartist"}
 
-    mock_async_artist_service.create.side_effect = [
+    mock_artist_async_service.create.side_effect = [
         ConflictException(
             code="ARTIST_ALREADY_EXISTS",
             message=f"An artist with name {artist_data['name']} already exists.",
@@ -508,7 +508,7 @@ async def test_async_post_artist_duplicate(
     ]
 
     def override_artist_service():
-        return mock_async_artist_service
+        return mock_artist_async_service
 
     app.dependency_overrides[get_artist_async_service] = override_artist_service  # type: ignore
 
@@ -521,7 +521,7 @@ async def test_async_post_artist_duplicate(
         error["message"] == f"An artist with name {artist_data['name']} already exists."
     )
 
-    mock_async_artist_service.create.assert_called_once_with(
+    mock_artist_async_service.create.assert_called_once_with(
         name=artist_data["name"],
         sort_name=artist_data["sortName"],
         integrations=None,
@@ -666,67 +666,51 @@ def test_get_artists_list_cursor(mock_artist_service: MagicMock):
 
 
 @pytest.mark.asyncio
-async def test_async_get_artist_by_id_success(
-    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+@pytest.mark.parametrize(
+    "id_, name, id_attr",
+    [
+        (uuid.uuid4(), "Test Artist", "id"),
+        (uuid.uuid4(), "Test Artist", "name"),
+    ],
+)
+async def test_async_get_artists_single_success(
+    id_: uuid.UUID,
+    name: str,
+    id_attr: str,
+    mock_artist_async_service: AsyncMock,
+    async_client: AsyncClient,
 ):
-    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
-    mock_artist.id = uuid.uuid4()
+    mock_artist = ArtistModel(name=name, sort_name="testartist")
+    mock_artist.id = id_
 
-    mock_async_artist_service.get_by.return_value = mock_artist
+    mock_artist_async_service.get_by.return_value = mock_artist
 
     def override_artist_service():
-        return mock_async_artist_service
+        return mock_artist_async_service
 
     app.dependency_overrides[get_artist_async_service] = override_artist_service
 
-    mock_async_artist_service.get_by.return_value = mock_artist
-
-    response = await async_client.get(f"{BASE_PATH_ASYNC}/{mock_artist.id}")
+    path_id = getattr(mock_artist, id_attr)
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{path_id}")
     assert response.status_code == 200
     artist = response.json()
     assert artist["id"] == str(mock_artist.id)
     assert artist["name"] == mock_artist.name
     assert artist["sortName"] == mock_artist.sort_name
 
-    mock_async_artist_service.get_by.assert_called_once_with(str(mock_artist.id))
-
-    del app.dependency_overrides[get_artist_async_service]
-
-
-@pytest.mark.asyncio
-async def test_async_get_artist_by_name_success(
-    mock_async_artist_service: AsyncMock, async_client: AsyncClient
-):
-    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
-    mock_artist.id = uuid.uuid4()
-
-    mock_async_artist_service.get_by.return_value = mock_artist
-
-    def override_artist_service():
-        return mock_async_artist_service
-
-    app.dependency_overrides[get_artist_async_service] = override_artist_service
-
-    response = await async_client.get(f"{BASE_PATH_ASYNC}/{mock_artist.name}")
-    assert response.status_code == 200
-    artist = response.json()
-    assert artist["id"] == str(mock_artist.id)
-    assert artist["name"] == mock_artist.name
-    assert artist["sortName"] == mock_artist.sort_name
-
-    mock_async_artist_service.get_by.assert_called_once_with(mock_artist.name)
+    mock_artist_async_service.get_by.assert_called_once_with(str(path_id))
 
     del app.dependency_overrides[get_artist_async_service]
 
 
 @pytest.mark.asyncio
 async def test_async_get_artist_not_found(
-    mock_async_artist_service: AsyncMock, async_client: AsyncClient
+    mock_artist_async_service: AsyncMock, async_client: AsyncClient
 ):
-    mock_async_artist_service.get_by.return_value = None
+    mock_artist_async_service.get_by.return_value = None
 
     def override_artist_service():
-        return mock_async_artist_service
+        return mock_artist_async_service
 
     app.dependency_overrides[get_artist_async_service] = override_artist_service
 
@@ -740,4 +724,4 @@ async def test_async_get_artist_not_found(
     assert error["message"] == f"No artist found for {name}."
     assert error["code"] == "ARTIST_NOT_FOUND"
 
-    mock_async_artist_service.get_by.assert_called_once_with(name)
+    mock_artist_async_service.get_by.assert_called_once_with(name)
