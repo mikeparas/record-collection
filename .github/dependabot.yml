@@ -10,6 +10,7 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+      - "node"
 
   - package-ecosystem: "uv"
     directory: "/"
@@ -21,6 +22,7 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+      - "python"
 
   - package-ecosystem: "uv"
     directory: "/services/api"
@@ -32,6 +34,7 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+      - "python"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -41,3 +44,4 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+      - "actions"
