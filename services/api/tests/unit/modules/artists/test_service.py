@@ -68,10 +68,18 @@ def get_mock_session(
 
 
 def get_mock_async_session(
+    *,
+    scalars_one_or_none_return: ArtistModel | None = None,
     add_side_effect: Callable[[ArtistModel], None] | None = None,
     commit_side_effect: Exception | None = None,
 ) -> AsyncSession:
     session = AsyncMock()
+
+    session.scalars = AsyncMock()
+    mock_scalars = session.scalars.return_value
+    mock_scalars.one_or_none = Mock()
+    mock_scalars.one_or_none.return_value = scalars_one_or_none_return
+
     session.add = Mock()
     if add_side_effect is not None:
         session.add.side_effect = add_side_effect
@@ -197,7 +205,7 @@ async def test_async_create_integrations(
     def mock_add(instance: ArtistModel):
         instance.id = mock_id
 
-    mock_session = get_mock_async_session(mock_add)
+    mock_session = get_mock_async_session(add_side_effect=mock_add)
 
     name = "New Artist"
     sort_name = "newartist"
@@ -301,7 +309,7 @@ async def test_async_create_duplicate(
         statement="insert statement", params={}, orig=orig_error
     )
 
-    mock_session = get_mock_async_session(None, integrity_error)
+    mock_session = get_mock_async_session(commit_side_effect=integrity_error)
 
     name = "Duplicate Artist"
     sort_name = "duplicateartist"
@@ -379,3 +387,52 @@ def test_list_last_page():
     assert last_sort_name is None
 
     assert_list(cast(Mock, mock_session))
+
+
+@pytest.mark.asyncio
+async def test_async_get_by_id():
+    mock_id = uuid.uuid4()
+    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
+    mock_artist.id = mock_id
+
+    mock_session = get_mock_async_session(scalars_one_or_none_return=mock_artist)
+
+    artist_service = ArtistAsyncService(mock_session, AsyncMock())
+    artist = await artist_service.get_by(str(mock_id))
+    assert artist is not None
+    assert artist.id == mock_id
+    assert artist.name == mock_artist.name
+    assert artist.sort_name == mock_artist.sort_name
+
+    assert_select(str(mock_id), cast(Mock, mock_session))
+
+
+@pytest.mark.asyncio
+async def test_async_get_by_name():
+    mock_id = uuid.uuid4()
+    mock_artist = ArtistModel(name="Test Artist", sort_name="testartist")
+    mock_artist.id = mock_id
+
+    mock_session = get_mock_async_session(scalars_one_or_none_return=mock_artist)
+
+    artist_service = ArtistAsyncService(mock_session, AsyncMock())
+    artist = await artist_service.get_by(mock_artist.name)
+    assert artist is not None
+    assert artist.id == mock_id
+    assert artist.name == mock_artist.name
+    assert artist.sort_name == mock_artist.sort_name
+
+    assert_select(mock_artist.name, cast(Mock, mock_session))
+
+
+@pytest.mark.asyncio
+async def test_async_get_by_not_found():
+    mock_session = get_mock_async_session(scalars_one_or_none_return=None)
+
+    name = "Not Found"
+
+    artist_service = ArtistAsyncService(mock_session, AsyncMock())
+    artist = await artist_service.get_by(name)
+    assert artist is None
+
+    assert_select(name, cast(Mock, mock_session))

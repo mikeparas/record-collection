@@ -637,3 +637,46 @@ async def test_async_post_artist_duplicate(
     async with AsyncSessionLocal() as db:
         await db.delete(artist)
         await db.commit()
+
+
+@pytest.mark.asyncio(loop_scope="module")
+@pytest.mark.parametrize("attr_id", ["id", "name"])
+async def test_async_get_artists_single(
+    attr_id: str,
+    async_client: AsyncClient,
+    setup_async_database: None,
+):
+    async with AsyncSessionLocal() as db:
+        artist = ArtistModel(name="Test Artist", sort_name="testartist")
+        db.add(artist)
+        await db.commit()
+        await db.refresh(artist)
+
+    path_id = getattr(artist, attr_id)
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{path_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(artist.id)
+    assert data["name"] == artist.name
+    assert data["sortName"] == artist.sort_name
+
+    # clean up seed
+    async with AsyncSessionLocal() as db:
+        await db.delete(artist)
+        await db.commit()
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_async_get_artist_not_found(
+    async_client: AsyncClient, setup_async_database: None
+):
+    # nothing to seed
+    name = "Not Found Artist"
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{name}")
+    assert response.status_code == 404
+    body = response.json()
+    error = body.get("error")
+    assert error is not None
+    assert error["type"] == "not_found"
+    assert error["message"] == f"No artist found for {name}."
+    assert error["code"] == "ARTIST_NOT_FOUND"

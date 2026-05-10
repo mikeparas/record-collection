@@ -1,7 +1,9 @@
+import uuid
 from typing import NoReturn
 
 from asyncpg import exceptions
 from psycopg import errors
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
@@ -79,6 +81,16 @@ class ArtistAsyncService:
     def __init__(self, db: AsyncSession, publisher: ArtistPublisher):
         self.db = db
         self.publisher = publisher
+
+    async def get_by(self, identifier: str) -> ArtistModel | None:
+        try:
+            uuid_id = uuid.UUID(identifier)
+            stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
+        except ValueError:
+            stmt = select(ArtistModel).where(ArtistModel.name == identifier)
+
+        result = await self.db.scalars(stmt)
+        return result.one_or_none()
 
     async def create(
         self,
