@@ -19,13 +19,14 @@ from src.core.exceptions import (
     request_validation_error_handler,
 )
 from src.dependencies import get_artist_async_service, get_artist_service
-from src.modules.artists.models import ArtistModel, Integrations
+from src.modules.artists.models import ArtistExtraModel, ArtistModel, Integrations
 from src.modules.artists.router import router, router_v2
 from src.modules.artists.service import (
     DEFAULT_LIST_LIMIT,
     ArtistAsyncService,
     ArtistService,
 )
+from src.shared.types import ArtistExtraData, DiscogsArtist
 from tests.utils import assert_pagination, encode_cursor, generate_artists
 
 app = FastAPI()
@@ -683,6 +684,19 @@ async def test_async_get_artists_single_success(
     mock_artist = ArtistModel(name=name, sort_name="testartist")
     mock_artist.id = id_
 
+    artist_extra = ArtistExtraModel(
+        id=id_,
+        data=ArtistExtraData(
+            discogs=DiscogsArtist(
+                id=12345,
+                name=name,
+                url="https://discogs.com/artist/12345",
+                images=["https://img.discogs.com/abc.jpg"],
+            )
+        ),
+    )
+    mock_artist.extra = artist_extra
+
     mock_artist_async_service.get_by.return_value = mock_artist
 
     def override_artist_service():
@@ -690,15 +704,21 @@ async def test_async_get_artists_single_success(
 
     app.dependency_overrides[get_artist_async_service] = override_artist_service
 
-    path_id = getattr(mock_artist, id_attr)
+    path_id = mock_artist.id if id_attr == "id" else mock_artist.name
     response = await async_client.get(f"{BASE_PATH_ASYNC}/{path_id}")
     assert response.status_code == 200
     artist = response.json()
     assert artist["id"] == str(mock_artist.id)
     assert artist["name"] == mock_artist.name
     assert artist["sortName"] == mock_artist.sort_name
+    assert artist["integrations"] is None
+    assert (
+        artist_extra.data is not None
+        and artist["extra"] == artist_extra.data.model_dump()
+    )
 
-    mock_artist_async_service.get_by.assert_called_once_with(str(path_id))
+    expected_call_arg = str(path_id)
+    mock_artist_async_service.get_by.assert_called_once_with(expected_call_arg)
 
     del app.dependency_overrides[get_artist_async_service]
 

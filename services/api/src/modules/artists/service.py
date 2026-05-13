@@ -6,7 +6,7 @@ from psycopg import errors
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.core.exceptions import ConflictException
 from src.modules.artists.models import (
@@ -88,6 +88,8 @@ class ArtistAsyncService:
             stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
         except ValueError:
             stmt = select(ArtistModel).where(ArtistModel.name == identifier)
+
+        stmt = stmt.options(selectinload(ArtistModel.extra))
 
         result = await self.db.scalars(stmt)
         return result.one_or_none()

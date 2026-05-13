@@ -11,9 +11,9 @@ from sqlalchemy import select
 
 from src.core.database import AsyncSessionLocal, SessionLocal
 from src.main import app
-from src.modules.artists.models import ArtistModel
+from src.modules.artists.models import ArtistExtraModel, ArtistModel
 from src.modules.artists.service import DEFAULT_LIST_LIMIT
-from src.shared.types import Integrations
+from src.shared.types import ArtistExtraData, DiscogsArtist, Integrations
 from tests.utils import (
     assert_artist_message_properties,
     assert_pagination,
@@ -659,9 +659,50 @@ async def test_async_get_artists_single(
     assert data["id"] == str(artist.id)
     assert data["name"] == artist.name
     assert data["sortName"] == artist.sort_name
+    assert data["extra"] is None
 
     # clean up seed
     async with AsyncSessionLocal() as db:
+        await db.delete(artist)
+        await db.commit()
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_async_get_artist_with_extra(
+    async_client: AsyncClient,
+    setup_async_database: None,
+):
+    async with AsyncSessionLocal() as db:
+        artist = ArtistModel(name="Test Artist", sort_name="testartist")
+        db.add(artist)
+        await db.flush()
+        await db.refresh(artist)
+
+        # Insert extra data
+        extra_data = ArtistExtraData(
+            discogs=DiscogsArtist(
+                id=12345,
+                name="Test Artist",
+                url="https://discogs.com/artist/12345",
+                images=["https://img.discogs.com/abc.jpg"],
+            )
+        )
+        artist_extra = ArtistExtraModel(id=artist.id, data=extra_data)
+        db.add(artist_extra)
+        await db.commit()
+        await db.refresh(artist)
+
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{artist.id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["id"] == str(artist.id)
+    assert data["name"] == artist.name
+    assert data["sortName"] == artist.sort_name
+    assert data["extra"] == extra_data.model_dump()
+
+    # clean up seed
+    async with AsyncSessionLocal() as db:
+        await db.delete(artist_extra)
         await db.delete(artist)
         await db.commit()
 

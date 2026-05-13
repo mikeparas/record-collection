@@ -403,6 +403,7 @@ async def test_async_get_by_id():
     assert artist.id == mock_id
     assert artist.name == mock_artist.name
     assert artist.sort_name == mock_artist.sort_name
+    assert artist.extra is None
 
     assert_select(str(mock_id), cast(Mock, mock_session))
 
@@ -421,6 +422,7 @@ async def test_async_get_by_name():
     assert artist.id == mock_id
     assert artist.name == mock_artist.name
     assert artist.sort_name == mock_artist.sort_name
+    assert artist.extra is None
 
     assert_select(mock_artist.name, cast(Mock, mock_session))
 

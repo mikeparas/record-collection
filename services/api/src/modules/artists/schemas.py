@@ -1,10 +1,28 @@
 import uuid
 from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_serializer,
+)
 
 from src.shared.schemas import BaseListResponse
-from src.shared.types import Integrations
+from src.shared.types import ArtistExtraData, Integrations
+
+
+class ArtistExtra(BaseModel):
+    # ignore "id"
+    data: ArtistExtraData | None = Field(default=None)
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    @model_serializer(mode="plain")
+    def serialize_extra(self) -> ArtistExtraData | None:
+        # return the data itself instead of {"data": ...}
+        return self.data
 
 
 class Artist(BaseModel):
@@ -12,6 +30,7 @@ class Artist(BaseModel):
     name: str
     sort_name: str = Field(serialization_alias="sortName")
     integrations: Integrations | None = Field(default=None)
+    extra: ArtistExtra | None = Field(default=None)
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 

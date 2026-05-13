@@ -7,11 +7,22 @@ from sqlalchemy.dialects.postgresql import JSONB
 T = TypeVar("T", bound=BaseModel)
 
 
+class DiscogsArtist(BaseModel):
+    id: int
+    name: str
+    url: str
+    images: list[str] | None = Field(default=None)
+
+
+class ArtistExtraData(BaseModel):
+    discogs: DiscogsArtist | None = Field(default=None)
+
+
 class Integrations(BaseModel):
     discogs: int | None = Field(default=None)
 
 
-class IntegrationsType(TypeDecorator[T]):
+class JSONBType(TypeDecorator[T]):
     impl = JSONB
     cache_ok = True
 
