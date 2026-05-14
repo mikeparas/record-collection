@@ -3,18 +3,29 @@ from __future__ import annotations
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String, func
+from sqlalchemy import ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.schema import UniqueConstraint
 
 from src.core.database import Base
-from src.shared.types import Integrations, IntegrationsType
+from src.shared.types import ArtistExtraData, Integrations, JSONBType
 
 if TYPE_CHECKING:
     from src.modules.records.models import RecordModel
 
 CONSTRAINT_UNIQUE_NAME = "UQ_artists_name"
 CONSTRAINT_UNIQUE_SORT_NAME = "UQ_artists_sort_name"
+
+
+class ArtistExtraModel(Base):
+    __tablename__ = "artist_extra"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("artists.id"), primary_key=True, autoincrement=False
+    )
+    data: Mapped[ArtistExtraData | None] = mapped_column(
+        JSONBType(ArtistExtraData), default=None
+    )
 
 
 class ArtistModel(Base):
@@ -30,7 +41,7 @@ class ArtistModel(Base):
     name: Mapped[str] = mapped_column(String)
     sort_name: Mapped[str] = mapped_column(String)
     integrations: Mapped[Integrations | None] = mapped_column(
-        IntegrationsType(Integrations), default=None
+        JSONBType(Integrations), default=None
     )
 
     records: Mapped[list[RecordModel]] = relationship(
@@ -38,4 +49,8 @@ class ArtistModel(Base):
         secondary="records_artists",
         back_populates="artists",
         default_factory=list,
+        lazy="noload",
+    )
+    extra: Mapped[ArtistExtraModel | None] = relationship(
+        "ArtistExtraModel", lazy="noload", default=None
     )

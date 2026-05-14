@@ -7,13 +7,13 @@ import pytest
 from aio_pika.abc import AbstractChannel, AbstractQueue
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from src.core.database import AsyncSessionLocal, SessionLocal
 from src.main import app
-from src.modules.artists.models import ArtistModel
+from src.modules.artists.models import ArtistExtraModel, ArtistModel
 from src.modules.artists.service import DEFAULT_LIST_LIMIT
-from src.shared.types import Integrations
+from src.shared.types import ArtistExtraData, DiscogsArtist, Integrations
 from tests.utils import (
     assert_artist_message_properties,
     assert_pagination,
@@ -649,20 +649,81 @@ async def test_async_get_artists_single(
     async with AsyncSessionLocal() as db:
         artist = ArtistModel(name="Test Artist", sort_name="testartist")
         db.add(artist)
-        await db.commit()
+        await db.flush()
         await db.refresh(artist)
 
-    path_id = getattr(artist, attr_id)
+        artist_id = artist.id
+        path_id = getattr(artist, attr_id)
+
+        expected: dict[str, Any] = {
+            "id": str(artist.id),
+            "name": artist.name,
+            "sortName": artist.sort_name,
+            "integrations": None,
+            "extra": None,
+        }
+
+        await db.commit()
+
     response = await async_client.get(f"{BASE_PATH_ASYNC}/{path_id}")
     assert response.status_code == 200
     data = response.json()
-    assert data["id"] == str(artist.id)
-    assert data["name"] == artist.name
-    assert data["sortName"] == artist.sort_name
+    assert data == expected
 
     # clean up seed
     async with AsyncSessionLocal() as db:
-        await db.delete(artist)
+        await db.execute(delete(ArtistModel).where(ArtistModel.id == artist_id))
+        await db.commit()
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_async_get_artist_with_extra(
+    async_client: AsyncClient,
+    setup_async_database: None,
+):
+    async with AsyncSessionLocal() as db:
+        integrations = Integrations(discogs=12345)
+        artist = ArtistModel(
+            name="Test Artist", sort_name="testartist", integrations=integrations
+        )
+        db.add(artist)
+        await db.flush()
+        await db.refresh(artist)
+        artist_id = artist.id
+
+        # Insert extra data
+        extra_data = ArtistExtraData(
+            discogs=DiscogsArtist(
+                id=12345,
+                name="Test Artist",
+                url="https://discogs.com/artist/12345",
+                images=["https://img.discogs.com/abc.jpg"],
+            )
+        )
+        artist_extra = ArtistExtraModel(id=artist.id, data=extra_data)
+        db.add(artist_extra)
+
+        expected: dict[str, Any] = {
+            "id": str(artist.id),
+            "name": artist.name,
+            "sortName": artist.sort_name,
+            "integrations": integrations.model_dump(),
+            "extra": extra_data.model_dump(),
+        }
+
+        await db.commit()
+
+    response = await async_client.get(f"{BASE_PATH_ASYNC}/{artist_id}")
+    assert response.status_code == 200
+    data = response.json()
+    assert data == expected
+
+    # clean up seed
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            delete(ArtistExtraModel).where(ArtistExtraModel.id == artist_id)
+        )
+        await db.execute(delete(ArtistModel).where(ArtistModel.id == artist_id))
         await db.commit()
 
 
