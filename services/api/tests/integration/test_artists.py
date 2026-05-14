@@ -660,7 +660,7 @@ async def test_async_get_artists_single(
             "name": artist.name,
             "sortName": artist.sort_name,
             "integrations": None,
-            "extra": None
+            "extra": None,
         }
 
         await db.commit()
@@ -669,14 +669,9 @@ async def test_async_get_artists_single(
     assert response.status_code == 200
     data = response.json()
     assert data == expected
-    # assert data["id"] == str(artist.id)
-    # assert data["name"] == artist.name
-    # assert data["sortName"] == artist.sort_name
-    # assert data["extra"] is None
 
     # clean up seed
     async with AsyncSessionLocal() as db:
-        # await db.delete(artist)
         await db.execute(delete(ArtistModel).where(ArtistModel.id == artist_id))
         await db.commit()
 
