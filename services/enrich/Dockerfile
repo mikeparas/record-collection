@@ -8,8 +8,9 @@ RUN --mount=type=cache,target=/pnpm/store pnpm fetch && pnpm install --frozen-lo
 # nest app (prune dev dependencies)
 FROM builder AS enrich
 ENV CI=true
+RUN pnpm build
 RUN --mount=type=cache,target=/pnpm/store pnpm prune --prod
-CMD pnpm start
+CMD pnpm start:prod
 
 # migrations
 FROM builder AS node_migrate
