@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 
@@ -12,6 +13,7 @@ from src.core.exceptions import (
     not_found_exception_handler,
     request_validation_error_handler,
 )
+from src.core.logging import init_logger
 from src.core.publisher import RabbitMQConnector, setup_channel
 from src.modules.artists.router import router as artist_router
 from src.modules.artists.router import router_v2 as async_artist_router
@@ -19,9 +21,15 @@ from src.modules.health.router import router as health_router
 from src.modules.labels.router import router as label_router
 from src.modules.records.router import router as record_router
 
+init_logger()
+
+log = structlog.stdlib.get_logger(module="main")
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    log.info("Initializing application")
+
     init_db(
         host=settings.db_host,
         port=int(settings.db_port),
@@ -51,6 +59,8 @@ async def lifespan(_: FastAPI):
         )
 
     yield
+
+    log.info("Closing application")
 
     await RabbitMQConnector.close()
 

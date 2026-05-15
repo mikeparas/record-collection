@@ -1,3 +1,4 @@
+import structlog
 from sqlalchemy import URL, Engine, create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -12,6 +13,8 @@ AsyncSessionLocal = async_sessionmaker(
     autocommit=False, autoflush=False, class_=AsyncSession
 )
 
+log = structlog.stdlib.get_logger(module="core.database")
+
 
 class Base(MappedAsDataclass, DeclarativeBase):
     pass
@@ -25,7 +28,15 @@ class DatabaseConnector:
     def get_engine(
         cls, *, host: str, port: int, database: str, username: str, password: str
     ) -> Engine:
+        log.info(
+            "Getting sync engine instance",
+            database=database,
+            host=host,
+            port=port,
+        )
+
         if cls.sync_engine is not None:
+            log.info("Using existing sync instance")
             return cls.sync_engine
 
         database_url = URL.create(
@@ -39,13 +50,24 @@ class DatabaseConnector:
 
         cls.sync_engine = create_engine(database_url)
         SessionLocal.configure(bind=cls.sync_engine)
+
+        log.info("Returning new sync instance")
+
         return cls.sync_engine
 
     @classmethod
     def get_async_engine(
         cls, *, host: str, port: int, database: str, username: str, password: str
     ):
+        log.info(
+            "Getting async engine instance",
+            database=database,
+            host=host,
+            port=port,
+        )
+
         if cls.async_engine is not None:
+            log.info("Using existing async instance")
             return cls.async_engine
 
         database_url = URL.create(
@@ -59,6 +81,9 @@ class DatabaseConnector:
 
         cls.async_engine = create_async_engine(database_url)
         AsyncSessionLocal.configure(bind=cls.async_engine)
+
+        log.info("Returning new async instance")
+
         return cls.async_engine
 
     @classmethod
