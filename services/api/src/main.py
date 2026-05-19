@@ -1,7 +1,8 @@
+from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
 
 import structlog
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 
 from src.core.config import settings
@@ -15,6 +16,7 @@ from src.core.exceptions import (
 )
 from src.core.logging import init_logger
 from src.core.publisher import RabbitMQConnector, setup_channel
+from src.middleware import request_logging
 from src.modules.artists.router import router as artist_router
 from src.modules.artists.router import router_v2 as async_artist_router
 from src.modules.health.router import router as health_router
@@ -78,3 +80,10 @@ app.include_router(artist_router)
 app.include_router(async_artist_router)
 app.include_router(label_router)
 app.include_router(record_router)
+
+
+@app.middleware("http")
+async def request_logging_middleware(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+):
+    return await request_logging(request, call_next)

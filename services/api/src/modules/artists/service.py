@@ -1,6 +1,7 @@
 import uuid
 from typing import NoReturn
 
+import structlog
 from asyncpg import exceptions
 from psycopg import errors
 from sqlalchemy import select
@@ -20,6 +21,8 @@ from src.shared.service import BaseService
 from src.shared.types import Integrations
 
 DEFAULT_LIST_LIMIT = 50
+
+log = structlog.stdlib.get_logger(module="artists.service")
 
 
 def conflict_exception_detail(item: ArtistModel, constraint_name: str):
@@ -86,8 +89,10 @@ class ArtistAsyncService:
         try:
             uuid_id = uuid.UUID(identifier)
             stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
+            log.info("Fetching artist by ID", id=identifier)
         except ValueError:
             stmt = select(ArtistModel).where(ArtistModel.name == identifier)
+            log.info("Fetching artist by name", name=identifier)
 
         stmt = stmt.options(selectinload(ArtistModel.extra))
 
