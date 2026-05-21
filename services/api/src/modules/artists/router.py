@@ -76,8 +76,6 @@ async def async_create_artist(
     response: Response,
     service: Annotated[ArtistAsyncService, Depends(get_artist_async_service)],
 ):
-    log.info("Creating artist")
-
     # Extract correlation_id from request headers
     # (from API Gateway or fallback to None for auto-generation)
     correlation_id = request.headers.get("X-Correlation-ID")
