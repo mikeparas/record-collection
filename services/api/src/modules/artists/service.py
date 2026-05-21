@@ -61,6 +61,7 @@ def raise_async_conflict_exception(
             code="ARTIST_ALREADY_EXISTS",
             message=f"An artist with {attr_str} already exists.",
         ) from exc
+    log.error("Unexpected IntegrityError occurred", exc_info=exc)
     raise
 
 
@@ -89,10 +90,8 @@ class ArtistAsyncService:
         try:
             uuid_id = uuid.UUID(identifier)
             stmt = select(ArtistModel).where(ArtistModel.id == uuid_id)
-            log.info("Fetching artist by ID", id=identifier)
         except ValueError:
             stmt = select(ArtistModel).where(ArtistModel.name == identifier)
-            log.info("Fetching artist by name", name=identifier)
 
         stmt = stmt.options(selectinload(ArtistModel.extra))
 

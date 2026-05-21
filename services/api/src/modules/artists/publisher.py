@@ -1,6 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
+import structlog
 from aio_pika import DeliveryMode, Message
 from aio_pika.abc import AbstractChannel
 from aio_pika.exceptions import AMQPError
@@ -9,6 +10,8 @@ from src.modules.artists.schemas import ArtistMessage
 
 ROUTING_KEY = "artist.created"
 MESSAGE_TYPE = "artist.created"
+
+log = structlog.stdlib.get_logger(module="artists.publisher")
 
 
 def create_artist_message(
@@ -54,10 +57,11 @@ class ArtistPublisher:
             exchange = await self.channel.get_exchange(self.exchange_name, ensure=False)
             amqp_message = create_artist_message(artist, correlation_id)
             await exchange.publish(amqp_message, routing_key=ROUTING_KEY)
+            log.info("Published artist message", message_id=amqp_message.message_id)
             return True
         except AMQPError as exc:
-            print(f"AMPQError: {exc}")
+            log.error("Failed to publish artist message", exc_info=exc)
             return False
         except Exception as exc:
-            print(f"Unexpected error {exc}")
+            log.error("Unexpected error occurred", exc_info=exc)
             return False

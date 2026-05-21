@@ -26,7 +26,6 @@ router = APIRouter(prefix="/artists", tags=["artists"])
 router_v2 = APIRouter(prefix="/artists_v2")
 
 log = structlog.stdlib.get_logger(module="artists.router")
-# log = log.bind(module="artists.router")
 
 
 @router.get(
@@ -77,6 +76,8 @@ async def async_create_artist(
     response: Response,
     service: Annotated[ArtistAsyncService, Depends(get_artist_async_service)],
 ):
+    log.info("Creating artist")
+
     # Extract correlation_id from request headers
     # (from API Gateway or fallback to None for auto-generation)
     correlation_id = request.headers.get("X-Correlation-ID")
@@ -92,6 +93,9 @@ async def async_create_artist(
     response.headers["Location"] = urljoin(
         str(request.base_url), f"{router_v2.prefix}/{artist.name}"
     )
+
+    log.info("Created artist", artist_id=artist.id)
+
     return artist
 
 
@@ -160,12 +164,10 @@ async def async_get_single_artist(
     """
     Get a single artist for a given UUID identifer or name
     """
-    log.info("Fetching single artist", identifier=identifier)
 
     artist = await service.get_by(identifier)
 
     if artist is None:
-        log.info("Artist not found", identifier=identifier)
         raise NotFoundException(
             "ARTIST_NOT_FOUND", f"No artist found for {identifier}."
         )
