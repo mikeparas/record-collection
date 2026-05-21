@@ -1,6 +1,7 @@
 import uuid
 from typing import NoReturn
 
+import structlog
 from asyncpg import exceptions
 from psycopg import errors
 from sqlalchemy import select
@@ -20,6 +21,8 @@ from src.shared.service import BaseService
 from src.shared.types import Integrations
 
 DEFAULT_LIST_LIMIT = 50
+
+log = structlog.stdlib.get_logger(module="artists.service")
 
 
 def conflict_exception_detail(item: ArtistModel, constraint_name: str):
@@ -58,6 +61,7 @@ def raise_async_conflict_exception(
             code="ARTIST_ALREADY_EXISTS",
             message=f"An artist with {attr_str} already exists.",
         ) from exc
+    log.error("Unexpected IntegrityError occurred", exc_info=exc)
     raise
 
 

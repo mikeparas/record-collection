@@ -4,6 +4,7 @@ from http import HTTPStatus
 from typing import Annotated
 from urllib.parse import urlencode, urljoin
 
+import structlog
 from fastapi import APIRouter, Depends, Path, Request, Response
 
 from src.core.exceptions import NotFoundException
@@ -23,6 +24,8 @@ from src.shared.types import Integrations
 
 router = APIRouter(prefix="/artists", tags=["artists"])
 router_v2 = APIRouter(prefix="/artists_v2")
+
+log = structlog.stdlib.get_logger(module="artists.router")
 
 
 @router.get(
@@ -88,6 +91,9 @@ async def async_create_artist(
     response.headers["Location"] = urljoin(
         str(request.base_url), f"{router_v2.prefix}/{artist.name}"
     )
+
+    log.info("Created artist", artist_id=artist.id)
+
     return artist
 
 
@@ -156,6 +162,7 @@ async def async_get_single_artist(
     """
     Get a single artist for a given UUID identifer or name
     """
+
     artist = await service.get_by(identifier)
 
     if artist is None:
