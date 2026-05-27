@@ -1,4 +1,3 @@
-import os
 from http import HTTPStatus
 from unittest.mock import AsyncMock
 
