@@ -55,30 +55,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
+      # - name: Set up Python
+      #   uses: actions/setup-python@v6.2.0
+      #   with:
+      #     python-version-file: .python-version
+
+      # - name: Set up uv
+      #   uses: astral-sh/setup-uv@v8.1.0
+      #   with:
+      #     enable-cache: true
+
       - name: Set up Python
-        uses: actions/setup-python@v6.2.0
-        with:
-          python-version-file: .python-version
+        uses: ./.github/actions/setup-python.yml
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
-        with:
-          enable-cache: true
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.8
+      # - name: Set up pnpm
+      #   uses: pnpm/action-setup@v6.0.8
       
+      # - name: Set up Node
+      #   uses: actions/setup-node@v6.4.0
+      #   with:
+      #     node-version: "24"
+      #     cache: pnpm
+
       - name: Set up Node
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version: "24"
-          cache: pnpm
+        uses: ./.github/actions/setup-node.yml
       
       - name: Install dependencies
         run: make sync
-
-      - name: Debug Node dependencies
-        run: ls services/enrich/node_modules/typeorm
 
       - name: Cache Python dependencies
         uses: actions/cache/save@v5.0.5
@@ -107,15 +110,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@v6.2.0
-        with:
-          python-version-file: .python-version
+      # - name: Set up Python
+      #   uses: actions/setup-python@v6.2.0
+      #   with:
+      #     python-version-file: .python-version
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
-        with:
-          enable-cache: true
+      # - name: Set up uv
+      #   uses: astral-sh/setup-uv@v8.1.0
+      #   with:
+      #     enable-cache: true
+      - name: Set up Python
+        uses: ./.github/actions/setup-python.yml
 
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
@@ -143,14 +148,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.8
+      # - name: Set up pnpm
+      #   uses: pnpm/action-setup@v6.0.8
 
+      # - name: Set up Node
+      #   uses: actions/setup-node@v6.4.0
+      #   with:
+      #     node-version: "24"
+      #     cache: pnpm
       - name: Set up Node
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version: "24"
-          cache: pnpm
+        uses: ./.github/actions/setup-node.yml
 
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
@@ -185,24 +192,28 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6.0.2
 
+      # - name: Set up Python
+      #   uses: actions/setup-python@v6.2.0
+      #   with:
+      #     python-version-file: .python-version
+
+      # - name: Set up uv
+      #   uses: astral-sh/setup-uv@v8.1.0
+      #   with:
+      #     enable-cache: true
       - name: Set up Python
-        uses: actions/setup-python@v6.2.0
-        with:
-          python-version-file: .python-version
+        uses: ./.github/actions/setup-python.yml
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
-        with:
-          enable-cache: true
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v6.0.8
+      # - name: Set up pnpm
+      #   uses: pnpm/action-setup@v6.0.8
       
+      # - name: Set up Node
+      #   uses: actions/setup-node@v6.4.0
+      #   with:
+      #     node-version: "24"
+      #     cache: pnpm
       - name: Set up Node
-        uses: actions/setup-node@v6.4.0
-        with:
-          node-version: "24"
-          cache: pnpm
+        uses: ./.github/actions/setup-node.yml
 
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
