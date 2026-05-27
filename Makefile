@@ -101,5 +101,13 @@ precommit:
 	uv run poe precommit
 	pnpm precommit
 
+lint_api:
+	uv run poe lint
+
+lint_enrich:
+	pnpm lint
+
+lint: lint_api lint_enrich
+
 clean:
 	docker compose down -v
