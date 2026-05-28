@@ -1,0 +1,14 @@
+name: Setup Python environment
+description: Set up Python environment for CI workflows
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v6.2.0
+      with:
+        python-version-file: .python-version
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v8.1.0
+      with:
+        enable-cache: true
