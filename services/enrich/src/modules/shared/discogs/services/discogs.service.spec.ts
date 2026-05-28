@@ -3,10 +3,27 @@ import { DiscogsService } from './discogs.service';
 import { DiscogsError } from '../exceptions/exceptions';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of } from 'rxjs';
+import { ConfigService } from '@nestjs/config';
+
+const mockDiscogsToken = 'test-token';
+const mockDiscogsUserAgent = 'TestingUserAgent/1.0 (example@example.org)';
 
 describe('DiscogsService', () => {
   let discogs: DiscogsService;
   let http: HttpService;
+
+  const assertDiscogsGetArtist = (
+    mockGet: jest.SpyInstance,
+    resource: string,
+  ) => {
+    expect(mockGet).toHaveBeenCalledTimes(1);
+    expect(mockGet).toHaveBeenCalledWith(resource, {
+      headers: {
+        'User-Agent': mockDiscogsUserAgent,
+        Authorization: `Discogs token=${mockDiscogsToken}`,
+      },
+    });
+  };
 
   beforeAll(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -16,6 +33,21 @@ describe('DiscogsService', () => {
           provide: HttpService,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              switch (key) {
+                case 'DISCOGS_TOKEN':
+                  return mockDiscogsToken;
+                case 'DISCOGS_USER_AGENT':
+                  return mockDiscogsUserAgent;
+                default:
+                  return null;
+              }
+            }),
           },
         },
       ],
@@ -47,7 +79,8 @@ describe('DiscogsService', () => {
         ],
       };
 
-      const mockGet = jest.spyOn(http, 'get').mockReturnValue(
+      const mockGet = jest.spyOn(http, 'get');
+      mockGet.mockReturnValue(
         of({
           status: 200,
           data: artistResponse,
@@ -62,10 +95,7 @@ describe('DiscogsService', () => {
         images: [artistResponse.images[0].uri],
       });
 
-      expect(mockGet).toHaveBeenCalledTimes(1);
-      expect(mockGet).toHaveBeenCalledWith(
-        `https://api.discogs.com/artists/${id}`,
-      );
+      assertDiscogsGetArtist(mockGet, `https://api.discogs.com/artists/${id}`);
     });
 
     test('should return null if the artist is not found', async () => {
@@ -80,10 +110,7 @@ describe('DiscogsService', () => {
       const data = await discogs.enrichArtist(id);
       expect(data).toBeNull();
 
-      expect(mockGet).toHaveBeenCalledTimes(1);
-      expect(mockGet).toHaveBeenCalledWith(
-        `https://api.discogs.com/artists/${id}`,
-      );
+      assertDiscogsGetArtist(mockGet, `https://api.discogs.com/artists/${id}`);
     });
 
     test('should return throw an exception for any other HTTP error status', async () => {
@@ -97,10 +124,7 @@ describe('DiscogsService', () => {
 
       await expect(discogs.enrichArtist(id)).rejects.toThrow(DiscogsError);
 
-      expect(mockGet).toHaveBeenCalledTimes(1);
-      expect(mockGet).toHaveBeenCalledWith(
-        `https://api.discogs.com/artists/${id}`,
-      );
+      assertDiscogsGetArtist(mockGet, `https://api.discogs.com/artists/${id}`);
     });
   });
 });
