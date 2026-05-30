@@ -1,5 +1,5 @@
 FROM node:24-alpine3.23 AS builder
-RUN corepack enable pnpm && corepack install -g pnpm@latest
+RUN corepack enable pnpm && corepack install -g pnpm
 WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/enrich ./services/enrich
