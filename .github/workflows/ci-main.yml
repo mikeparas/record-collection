@@ -28,8 +28,6 @@ jobs:
   core:
     name: Core CI Jobs
     uses: ./.github/workflows/ci-core.yml
-    with:
-      cache-key: main-${{ github.sha }}
 
   e2e:
     name: E2E tests (placeholder)
