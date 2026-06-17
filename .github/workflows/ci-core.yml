@@ -46,8 +46,44 @@ jobs:
               - ".github/workflows/ci-main.yml"
               - ".github/workflows/ci-core.yml"
 
-  setup:
-    name: Download and cache dependencies
+  # setup:
+  #   name: Download and cache dependencies
+  #   runs-on: ubuntu-latest
+  #   needs: detect_changes
+  #   if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v6.0.3
+
+  #     - name: Set up Python
+  #       uses: ./.github/actions/setup-python
+
+  #     - name: Set up Node
+  #       uses: ./.github/actions/setup-node
+      
+  #     - name: Install dependencies
+  #       run: make sync
+
+  #     - name: Cache Python dependencies
+  #       uses: actions/cache/save@v5.0.5
+  #       with:
+  #         path: .venv
+  #         key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
+
+  #     - name: Cache root Node dependencies
+  #       uses: actions/cache/save@v5.0.5
+  #       with:
+  #         path: node_modules
+  #         key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+
+  #     - name: Cache enrich service dependencies
+  #       uses: actions/cache/save@v5.0.5
+  #       with:
+  #         path: services/enrich/node_modules
+  #         key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     needs: detect_changes
     if: ${{ needs.detect_changes.outputs.python == 'true' || needs.detect_changes.outputs.node == 'true' || needs.detect_changes.outputs.shared == 'true' }}
@@ -60,66 +96,30 @@ jobs:
 
       - name: Set up Node
         uses: ./.github/actions/setup-node
-      
+
+      # - name: Restore Python cache
+      #   id: restore-python-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: .venv
+      #     key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
+
+      # - name: Restore root Node cache
+      #   id: restore-root-node-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: node_modules
+      #     key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+
+      # - name: Restore enrich service cache
+      #   id: restore-enrich-service-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: services/enrich/node_modules
+      #     key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+
       - name: Install dependencies
-        run: make sync
-
-      - name: Cache Python dependencies
-        uses: actions/cache/save@v5.0.5
-        with:
-          path: .venv
-          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
-
-      - name: Cache root Node dependencies
-        uses: actions/cache/save@v5.0.5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-
-      - name: Cache enrich service dependencies
-        uses: actions/cache/save@v5.0.5
-        with:
-          path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
-
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    needs: setup
-    if: ${{ needs.setup.result == 'success' }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6.0.3
-
-      - name: Set up Python
-        uses: ./.github/actions/setup-python
-
-      - name: Set up Node
-        uses: ./.github/actions/setup-node
-
-      - name: Restore Python cache
-        id: restore-python-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: .venv
-          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
-
-      - name: Restore root Node cache
-        id: restore-root-node-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
-
-      - name: Restore enrich service cache
-        id: restore-enrich-service-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
-
-      - name: Install dependencies if cache is not found
-        if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' || steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
+        # if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' || steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
         run: make sync
 
       - name: Run linters
@@ -140,15 +140,15 @@ jobs:
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
 
-      - name: Restore Python cache
-        id: restore-python-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: .venv
-          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
+      # - name: Restore Python cache
+      #   id: restore-python-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: .venv
+      #     key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
 
       - name: Install Python dependencies if cache is not found
-        if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' }}
+        # if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' }}
         run: make sync_api
 
       - name: Run Python unit tests
@@ -169,22 +169,22 @@ jobs:
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
 
-      - name: Restore root Node cache
-        id: restore-root-node-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+      # - name: Restore root Node cache
+      #   id: restore-root-node-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: node_modules
+      #     key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
 
-      - name: Restore enrich service cache
-        id: restore-enrich-service-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+      # - name: Restore enrich service cache
+      #   id: restore-enrich-service-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: services/enrich/node_modules
+      #     key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
 
       - name: Install Node dependencies if cache is not found
-        if: ${{ steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
+        # if: ${{ steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
         run: make sync_enrich
 
       - name: Run Node unit tests
@@ -208,29 +208,29 @@ jobs:
       - name: Prepare environment files
         run: cp .env.sample .env && make env_file && make secrets
 
-      - name: Restore Python cache
-        id: restore-python-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: .venv
-          key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
+      # - name: Restore Python cache
+      #   id: restore-python-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: .venv
+      #     key: ${{ runner.os }}-python-${{ inputs.cache-key }}-${{ hashFiles('**/pyproject.toml') }}
 
-      - name: Restore root Node cache
-        id: restore-root-node-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
+      # - name: Restore root Node cache
+      #   id: restore-root-node-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: node_modules
+      #     key: ${{ runner.os }}-node-root-${{ inputs.cache-key }}-${{ hashFiles('package.json', 'pnpm-lock.yaml') }}
 
-      - name: Restore enrich service cache
-        id: restore-enrich-service-cache
-        uses: actions/cache/restore@v5.0.5
-        with:
-          path: services/enrich/node_modules
-          key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
+      # - name: Restore enrich service cache
+      #   id: restore-enrich-service-cache
+      #   uses: actions/cache/restore@v5.0.5
+      #   with:
+      #     path: services/enrich/node_modules
+      #     key: ${{ runner.os }}-node-enrich-${{ inputs.cache-key }}-${{ hashFiles('services/enrich/package.json', 'pnpm-lock.yaml') }}
 
       - name: Install dependencies if cache is not found
-        if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' || steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
+        # if: ${{ steps.restore-python-cache.outputs.cache-hit != 'true' || steps.restore-root-node-cache.outputs.cache-hit != 'true' || steps.restore-enrich-service-cache.outputs.cache-hit != 'true' }}
         run: make sync
 
       - name: Integration test setup
