@@ -1,4 +1,4 @@
-FROM ghcr.io/astral-sh/uv:python3.14-alpine3.23 AS builder
+FROM ghcr.io/astral-sh/uv:0.11.22-python3.14-alpine3.23 AS builder
 WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 COPY services/api ./services/api
