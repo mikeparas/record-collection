@@ -23,7 +23,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "httpx>=0.28.1",
-    "typer>=0.26.6",
+    "typer>=0.27.1",
 ]
 
 [tool.hatch.build.targets.wheel]
